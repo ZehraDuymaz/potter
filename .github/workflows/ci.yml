@@ -1,0 +1,31 @@
+# CI: build potter and run the tests on every push and pull request.
+# Results show up as ✅ / ❌ next to each commit on GitHub.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        compiler: [g++, clang++]
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${{ matrix.compiler }}
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check --version
+        run: ./build/potter --version

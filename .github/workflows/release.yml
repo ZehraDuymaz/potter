@@ -1,0 +1,53 @@
+# Release: when you push a tag like v0.2.0, build potter, run the tests,
+# and publish a GitHub release with the binary attached.
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write  # needed to create the release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Make sure the tag matches the version in CMakeLists.txt
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cmake_version=$(grep -oP 'project\(potter VERSION \K[0-9.]+' CMakeLists.txt)
+          if [ "$tag" != "$cmake_version" ]; then
+            echo "Tag v$tag does not match CMakeLists.txt version $cmake_version"
+            exit 1
+          fi
+
+      - name: Build
+        # Link the C++ runtime statically so the binary runs on more distros.
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"
+          cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          name="potter-${GITHUB_REF_NAME}-linux-x86_64"
+          mkdir "$name"
+          cp build/potter README.md LICENSE "$name/"
+          tar -czf "$name.tar.gz" "$name"
+          sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" potter-*.tar.gz* \
+            --title "potter $GITHUB_REF_NAME" \
+            --generate-notes

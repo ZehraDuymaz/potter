@@ -124,6 +124,16 @@ On Debian / Ubuntu:
 sudo apt install build-essential cmake libnotify-bin
 ```
 
+## Install from a release
+
+Download the latest `potter-vX.Y.Z-linux-x86_64.tar.gz` from the [Releases page](https://github.com/ZehraDuymaz/potter/releases), then:
+
+```sh
+tar -xzf potter-*-linux-x86_64.tar.gz
+install -Dm755 potter-*-linux-x86_64/potter ~/.local/bin/potter
+potter --version
+```
+
 ## Build and run
 
 ```sh
@@ -141,6 +151,8 @@ cmake --install build --prefix ~/.local
 ```
 
 The first configure downloads FTXUI (and toml++ if it isn't installed), so it needs internet once.
+
+AI is used in this project. 
 
 ## License
 

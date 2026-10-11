@@ -1,5 +1,7 @@
 #include <chrono>
+#include <cstdio>
 #include <string>
+#include <string_view>
 #include <thread>
 
 #include <ftxui/component/component.hpp>
@@ -8,8 +10,32 @@
 #include "app.hpp"
 #include "config.hpp"
 
-int main() {
+namespace {
+
+constexpr const char* kUsage =
+    "usage: potter [--version] [--help]\n"
+    "\n"
+    "A lightweight Pomodoro timer for the terminal.\n"
+    "Press ? inside potter to see the keys.\n";
+
+}  // namespace
+
+int main(int argc, char** argv) {
   using namespace ftxui;
+
+  if (argc > 1) {
+    const std::string_view arg = argv[1];
+    if (arg == "--version" || arg == "-v") {
+      std::printf("potter %s\n", POTTER_VERSION);
+      return 0;
+    }
+    if (arg == "--help" || arg == "-h") {
+      std::fputs(kUsage, stdout);
+      return 0;
+    }
+    std::fprintf(stderr, "potter: unknown option '%s'\n\n%s", argv[1], kUsage);
+    return 2;
+  }
 
   const auto path = potter::config_path();
   std::string error;

@@ -56,6 +56,8 @@ target_link_libraries(potter PRIVATE
   ftxui::component
 )
 target_compile_options(potter PRIVATE -Wall -Wextra -Wpedantic)
+# The version lives only in project() above; the code reads it from here.
+target_compile_definitions(potter PRIVATE POTTER_VERSION="${PROJECT_VERSION}")
 
 install(TARGETS potter RUNTIME DESTINATION bin)
 
