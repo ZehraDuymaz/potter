@@ -1,4 +1,4 @@
-# potter 🍅
+# potter 🤓
 
 A lightweight Pomodoro timer for the terminal.
 
@@ -7,6 +7,10 @@ potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, strea
 > Status: **v0.1** — timer + settings work. Tasks, streaks and music are next.
 
 ---
+
+## Why Potter 
+I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where I can basically search in YouTube and play things using yt-dlp and mpv. And I think it is one of the most amazing things in my computer. Definitely not exaggerating. Moreover, I split my terminal and open cava and it is an amazing pleasure. And I also love using blanket and termdown and also a nice todos thingy. So, I thought what if we can combine these all to a single terminal app. 
+Currently in v0.1.0, I only added pomodoro but I will add those amazing feature in the coming versions. 
 
 ## Goals
 
