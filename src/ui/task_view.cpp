@@ -19,6 +19,15 @@ TaskPanel::TaskPanel(TaskList& tasks) : tasks_(tasks) {
     return state.element;
   };
   input_ = Input(&buffer_, option);
+  // FTXUI hides the cursor while an input is empty, so draw a blinking bar
+  // there ourselves. Rendering through a component matters: FTXUI then
+  // prefers this cursor over the list's selected row, so it can't jump there.
+  field_ = Renderer([this] {
+    if (!buffer_.empty()) return input_->Render();
+    // Keep the cursor one cell wide at the start; the filler takes the rest
+    // of the line (a stretched cursor cell puts the cursor at its far end).
+    return hbox({text(" ") | focusCursorBarBlinking, filler()});
+  });
 
   const auto rows = tasks_.rows();
   if (!rows.empty()) selected_ = rows.front().task->id;
@@ -133,7 +142,8 @@ Element TaskPanel::render(Color accent) const {
     const std::string time = format_focus(
         rows[i].depth == 0 ? tasks_.total_focus(task.id) : task.focus);
 
-    Element title = text(task.title);
+    // paragraph() wraps long titles onto more lines instead of cutting them off.
+    Element title = paragraph(task.title);
     if (task.done) title = title | dim | strikethrough;
     if (active) title = title | bold | color(accent);
 
@@ -160,11 +170,8 @@ Element TaskPanel::render(Color accent) const {
       const char* label = mode_ == Mode::Add          ? "new task: "
                           : mode_ == Mode::AddSubtask ? "new subtask: "
                                                       : "rename: ";
-      // FTXUI hides the cursor while the input is empty, so draw our own
-      // blinking bar there; once there's text, the input draws it.
-      Element field = buffer_.empty() ? text(" ") | focusCursorBarBlinking : input_->Render();
       footer = vbox({
-          hbox({text(label) | bold, field | flex}),
+          hbox({text(label) | bold, field_->Render() | flex}),
           text("enter save · esc cancel") | dim,
       });
       break;

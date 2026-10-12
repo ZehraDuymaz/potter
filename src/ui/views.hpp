@@ -76,6 +76,8 @@ class TaskPanel {
   std::string buffer_;
   int cursor_ = 0;
   ftxui::Component input_;
+  // Wraps input_ so the typing cursor wins over the list's selected row.
+  ftxui::Component field_;
 };
 
 }  // namespace potter::ui

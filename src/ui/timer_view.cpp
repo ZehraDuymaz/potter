@@ -104,7 +104,10 @@ Element timer_view(const Timer& timer, const Config& config,
                    text("  " + std::to_string(timer.completed_focus()) + " today") | dim}) |
                  hcenter,
              text(state) | dim | hcenter,
-             active_task.empty() ? text("") : text(active_task) | color(accent) | hcenter,
+             active_task.empty()
+                 ? text("")
+                 : paragraphAlignCenter(active_task) | color(accent) |
+                       size(WIDTH, LESS_THAN, 50) | hcenter,
              text(""),
              text("space start/pause · r reset · n skip") | dim | hcenter,
              text("t tasks · s settings · ? help · q quit") | dim | hcenter,

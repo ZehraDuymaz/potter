@@ -5,6 +5,13 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-12
+
+### Fixed
+- The typing cursor jumped up to the task list when the text field was empty.
+- The typing cursor appeared at the far end of an empty text field instead of the start.
+- Long task titles were cut off; they now wrap onto more lines (also under the timer).
+
 ## [0.2.0] - 2026-10-12
 
 ### Added
