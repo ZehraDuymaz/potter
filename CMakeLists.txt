@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(potter VERSION 0.1.0 LANGUAGES CXX)
+project(potter VERSION 0.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -37,6 +37,8 @@ endif()
 add_library(potter_core STATIC
   src/timer.cpp
   src/config.cpp
+  src/tasks.cpp
+  src/storage.cpp
 )
 target_include_directories(potter_core PUBLIC src)
 target_link_libraries(potter_core PUBLIC tomlplusplus::tomlplusplus)
@@ -48,6 +50,7 @@ add_executable(potter
   src/notify.cpp
   src/ui/timer_view.cpp
   src/ui/settings_view.cpp
+  src/ui/task_view.cpp
 )
 target_link_libraries(potter PRIVATE
   potter_core
@@ -65,3 +68,7 @@ enable_testing()
 add_executable(timer_test tests/timer_test.cpp)
 target_link_libraries(timer_test PRIVATE potter_core)
 add_test(NAME timer_test COMMAND timer_test)
+
+add_executable(tasks_test tests/tasks_test.cpp)
+target_link_libraries(tasks_test PRIVATE potter_core)
+add_test(NAME tasks_test COMMAND tasks_test)

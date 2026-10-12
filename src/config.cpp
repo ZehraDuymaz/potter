@@ -1,11 +1,12 @@
 #include "config.hpp"
 
 #include <algorithm>
-#include <cstdlib>
-#include <fstream>
+#include <sstream>
 #include <system_error>
 
 #include <toml++/toml.hpp>
+
+#include "storage.hpp"
 
 namespace potter {
 
@@ -48,12 +49,7 @@ std::optional<Rgb> parse_hex_color(std::string_view text) {
 }
 
 std::filesystem::path config_path() {
-  if (const char* xdg = std::getenv("XDG_CONFIG_HOME"); xdg && *xdg) {
-    return std::filesystem::path(xdg) / "potter" / "config.toml";
-  }
-  const char* home = std::getenv("HOME");
-  return std::filesystem::path(home ? home : ".") / ".config" / "potter" /
-         "config.toml";
+  return xdg_dir("XDG_CONFIG_HOME", ".config") / "potter" / "config.toml";
 }
 
 Config load_config(const std::filesystem::path& path, std::string* error) {
@@ -99,6 +95,10 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
     config.long_break_color = read_color(*t, "long_break", config.long_break_color);
   }
 
+  if (const auto* t = root["tasks"].as_table()) {
+    config.show_tasks = (*t)["show_panel"].value_or(config.show_tasks);
+  }
+
   return config;
 }
 
@@ -127,32 +127,15 @@ bool save_config(const Config& config, const std::filesystem::path& path,
            {"short_break", config.short_break_color},
            {"long_break", config.long_break_color},
        }},
+      {"tasks",
+       toml::table{
+           {"show_panel", config.show_tasks},
+       }},
   };
 
-  std::error_code ec;
-  std::filesystem::create_directories(path.parent_path(), ec);
-
-  // Write to a temp file and rename, so a crash never leaves half a config.
-  auto tmp = path;
-  tmp += ".tmp";
-  {
-    std::ofstream out(tmp);
-    if (!out) {
-      if (error) *error = "could not write " + tmp.string();
-      return false;
-    }
-    out << "# potter config — edit here or press 's' in potter\n\n" << root << '\n';
-    if (!out) {
-      if (error) *error = "could not write " + tmp.string();
-      return false;
-    }
-  }
-  std::filesystem::rename(tmp, path, ec);
-  if (ec) {
-    if (error) *error = "could not save " + path.string() + ": " + ec.message();
-    return false;
-  }
-  return true;
+  std::ostringstream out;
+  out << "# potter config — edit here or press 's' in potter\n\n" << root << '\n';
+  return write_atomically(path, out.str(), error);
 }
 
 }  // namespace potter

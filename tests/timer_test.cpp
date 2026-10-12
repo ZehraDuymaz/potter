@@ -141,6 +141,38 @@ static void hex_colors() {
   CHECK(!parse_hex_color("#gg0000"));
 }
 
+static void focus_meter_counts_only_focus_time() {
+  TimerSettings s;
+  s.auto_start_breaks = true;
+  Timer timer(s);
+  FocusMeter meter;
+
+  CHECK(meter.collect(timer, t0) == 0min);  // not started yet
+  timer.start(t0);
+  CHECK(meter.collect(timer, t0 + 10min) == 10min);
+  CHECK(meter.collect(timer, t0 + 10min) == 0min);  // nothing new
+  timer.pause(t0 + 12min);
+  CHECK(meter.collect(timer, t0 + 1h) == 2min);  // paused time doesn't count
+  timer.start(t0 + 1h);
+  // Laptop slept past the end: only the rest of the 25 minutes counts.
+  CHECK(meter.collect(timer, t0 + 5h) == 13min);
+  timer.update(t0 + 5h);
+  CHECK(timer.phase() == Phase::ShortBreak);
+  CHECK(meter.collect(timer, t0 + 5h + 3min) == 0min);  // breaks don't count
+}
+
+static void focus_meter_handles_reset_and_skip() {
+  Timer timer;
+  FocusMeter meter;
+  timer.start(t0);
+  CHECK(meter.collect(timer, t0 + 5min) == 5min);
+  timer.reset();  // the 5 minutes already counted stay counted
+  timer.start(t0 + 5min);
+  CHECK(meter.collect(timer, t0 + 8min) == 3min);
+  timer.skip();
+  CHECK(meter.collect(timer, t0 + 9min) == 0min);
+}
+
 int main() {
   starts_untouched_in_focus();
   counts_down_and_pauses();
@@ -151,6 +183,8 @@ int main() {
   reset_restores_full_length();
   apply_settings_only_changes_untouched_phase();
   hex_colors();
+  focus_meter_counts_only_focus_time();
+  focus_meter_handles_reset_and_skip();
 
   if (failures == 0) std::printf("all timer tests passed\n");
   return failures == 0 ? 0 : 1;

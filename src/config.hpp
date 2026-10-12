@@ -31,6 +31,9 @@ struct Config {
   std::string focus_color = "#e06c75";
   std::string short_break_color = "#98c379";
   std::string long_break_color = "#61afef";
+
+  // Whether the task panel is shown next to the timer (toggled with 't').
+  bool show_tasks = true;
 };
 
 // $XDG_CONFIG_HOME/potter/config.toml, or ~/.config/potter/config.toml.

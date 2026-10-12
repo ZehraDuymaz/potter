@@ -84,6 +84,7 @@ Timer::Duration Timer::length_of(Phase phase) const {
 }
 
 void Timer::begin_phase() {
+  ++phase_id_;
   running_ = false;
   phase_length_ = length_of(phase_);
   remaining_ = phase_length_;
@@ -102,6 +103,20 @@ void Timer::advance(bool completed) {
     if (phase_ == Phase::LongBreak) cycle_pos_ = 0;
     phase_ = Phase::Focus;
   }
+}
+
+Timer::Duration FocusMeter::collect(const Timer& timer, Timer::Clock::time_point now) {
+  if (timer.phase_id() != phase_id_) {
+    phase_id_ = timer.phase_id();
+    counted_ = Timer::Duration::zero();
+  }
+  if (timer.phase() != Phase::Focus) return Timer::Duration::zero();
+
+  const auto elapsed = timer.elapsed(now);
+  if (elapsed <= counted_) return Timer::Duration::zero();
+  const auto delta = elapsed - counted_;
+  counted_ = elapsed;
+  return delta;
 }
 
 }  // namespace potter

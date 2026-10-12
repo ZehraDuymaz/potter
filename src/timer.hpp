@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstdint>
 #include <optional>
 
 #include "clock.hpp"
@@ -51,6 +52,10 @@ class Timer {
   Duration remaining(Clock::time_point now) const;
   // Length of the current phase, fixed when the phase began.
   Duration phase_length() const { return phase_length_; }
+  // Time spent in the current phase so far.
+  Duration elapsed(Clock::time_point now) const { return phase_length_ - remaining(now); }
+  // Changes whenever a new phase begins (including reset and skip).
+  std::uint64_t phase_id() const { return phase_id_; }
   // Focus sessions completed in the current cycle (resets after a long break).
   int cycle_position() const { return cycle_pos_; }
   // Focus sessions completed since the timer was created.
@@ -68,8 +73,22 @@ class Timer {
   Clock::time_point end_time_{};  // valid while running
   Duration remaining_{};          // valid while stopped
   Duration phase_length_{};
+  std::uint64_t phase_id_ = 0;
   int cycle_pos_ = 0;
   int completed_focus_ = 0;
+};
+
+// Measures focus time as it happens, so it can be credited to a task.
+// Pauses, resets and skips are handled: only time actually spent in a
+// focus phase is counted, and never more than the phase's length.
+class FocusMeter {
+ public:
+  // Returns the focus time that passed since the previous call.
+  Timer::Duration collect(const Timer& timer, Timer::Clock::time_point now);
+
+ private:
+  std::uint64_t phase_id_ = 0;
+  Timer::Duration counted_{};
 };
 
 }  // namespace potter

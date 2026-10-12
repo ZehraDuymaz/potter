@@ -4,13 +4,12 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that uses a few MB of RAM instead of a whole browser tab.
 
-> Status: **v0.1** — timer + settings work. Tasks, streaks and music are next.
+> Status: **v0.2** — timer, settings and tasks work. Streaks and music are next.
 
 ---
 
 ## Why Potter 
 I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where I can basically search in YouTube and play things using yt-dlp and mpv. And I think it is one of the most amazing things in my computer. Definitely not exaggerating. Moreover, I split my terminal and open cava and it is an amazing pleasure. And I also love using blanket and termdown and also a nice todos thingy. So, I thought what if we can combine these all to a single terminal app. 
-Currently in v0.1.0, I only added pomodoro but I will add those amazing feature in the coming versions. 
 
 ## Goals
 
@@ -36,11 +35,13 @@ Currently in v0.1.0, I only added pomodoro but I will add those amazing feature 
 - Settings are saved to `~/.config/potter/config.toml`, and you can edit that file by hand too.
 - The background is transparent: potter never paints one.
 
-### v0.2: Tasks
+### v0.2: Tasks ✅
 
-- A to-do list beside the timer that you can add to, edit, complete, reorder and delete.
-- Marking one task as the **active** task, so focus time is credited to it.
-- Per-task time tracking, with subtasks that roll up into their parent.
+- A to-do list beside the timer that you can add to, rename, complete, reorder and delete.
+- One level of subtasks.
+- Marking one task as the **active** task (`▶`), so focus time is credited to it as it happens. Pauses, resets, skips and breaks don't count.
+- Per-task time tracking, with subtasks' time rolled up into their parent.
+- Tasks are saved to `~/.local/share/potter/tasks.toml`, at least every 30 seconds while the timer runs and whenever you change something.
 
 ### v0.3: Streaks and goals
 
@@ -68,10 +69,12 @@ Currently in v0.1.0, I only added pomodoro but I will add those amazing feature 
 | `r` | Reset current phase |
 | `n` | Skip to next phase |
 | `s` | Open settings |
-| `t` | Toggle task panel (v0.2) |
+| `t` | Show / hide the task panel |
 | `m` | Toggle music (v0.4) |
 | `?` | Help |
 | `q` | Quit |
+
+In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
 
@@ -81,7 +84,7 @@ In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` tog
   - CMake downloads FTXUI automatically at build time (`FetchContent`), so nothing needs to be installed by hand.
 - **Build:** CMake (3.20+) with GCC or Clang.
 - **Config:** TOML at `~/.config/potter/config.toml`, read with [toml++](https://github.com/marzer/tomlplusplus) (in the Arch `extra` repo, or fetched by CMake).
-- **Data:** tasks, history and streaks in `~/.local/share/potter/` (following XDG).
+- **Data:** tasks (and later history and streaks) in `~/.local/share/potter/` (following XDG).
 - **Notifications:** `notify-send`. **Music:** `mpv` + `yt-dlp`. Both are optional runtime dependencies.
 - **Style:** modern C++ with RAII, no raw `new`/`delete`, and `std::chrono` for all time math.
 
@@ -94,20 +97,24 @@ potter/
 ├── src/
 │   ├── main.cpp           # start-up, screen + main loop
 │   ├── app.hpp/.cpp       # app state + key handling
-│   ├── timer.hpp/.cpp     # phase logic (pure, unit-tested)
+│   ├── timer.hpp/.cpp     # phase logic + focus meter (pure, unit-tested)
+│   ├── tasks.hpp/.cpp     # task list + tasks.toml (pure, unit-tested)
 │   ├── clock.hpp          # CLOCK_BOOTTIME clock (counts during sleep)
 │   ├── config.hpp/.cpp    # load/save config.toml
+│   ├── storage.hpp/.cpp   # XDG paths + safe file writes
 │   ├── notify.hpp/.cpp    # notify-send
 │   └── ui/
 │       ├── views.hpp
 │       ├── timer_view.cpp     # timer + help screens
+│       ├── task_view.cpp      # task panel
 │       └── settings_view.cpp  # settings screen
 ├── tests/
-│   └── timer_test.cpp
+│   ├── timer_test.cpp
+│   └── tasks_test.cpp
 └── docs/
 ```
 
-`timer.cpp` is kept free of UI code, so the Pomodoro logic can be tested on its own.
+`timer.cpp` and `tasks.cpp` are kept free of UI code, so the logic can be tested on its own.
 
 ## Requirements
 

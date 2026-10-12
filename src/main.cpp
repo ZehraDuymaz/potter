@@ -9,6 +9,7 @@
 
 #include "app.hpp"
 #include "config.hpp"
+#include "tasks.hpp"
 
 namespace {
 
@@ -44,7 +45,9 @@ int main(int argc, char** argv) {
   // Fullscreen uses the alternate screen, so the shell is restored on exit.
   // Nothing sets a background color, so terminal transparency shows through.
   auto screen = ScreenInteractive::Fullscreen();
-  potter::App app(std::move(config), path, screen.ExitLoopClosure());
+  // potter quits on Ctrl-C itself, so it can save before exiting.
+  screen.ForceHandleCtrlC(false);
+  potter::App app(std::move(config), path, potter::tasks_path(), screen.ExitLoopClosure());
   app.set_status(error);
 
   auto root = CatchEvent(Renderer([&] { return app.render(); }),
@@ -62,5 +65,6 @@ int main(int argc, char** argv) {
   screen.Loop(root);
   ticker.request_stop();
   ticker.join();
+  app.shutdown();
   return 0;
 }

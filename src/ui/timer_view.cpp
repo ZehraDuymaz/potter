@@ -2,8 +2,6 @@
 #include <cstdio>
 #include <string>
 
-#include <ftxui/screen/terminal.hpp>
-
 #include "ui/views.hpp"
 
 using namespace ftxui;
@@ -72,15 +70,13 @@ Color phase_color(Phase phase, const Config& config) {
 }
 
 Element timer_view(const Timer& timer, const Config& config,
-                   Timer::Clock::time_point now) {
+                   Timer::Clock::time_point now, bool big,
+                   const std::string& active_task) {
   const Color accent = phase_color(timer.phase(), config);
   const auto remaining = timer.remaining(now);
   const std::string clock = format_time(remaining);
 
-  const auto term = Terminal::Size();
-  Element countdown = term.dimx >= 50 && term.dimy >= 14
-                          ? big_text(clock)
-                          : text(clock) | bold;
+  Element countdown = big ? big_text(clock) : text(clock) | bold;
 
   const double length = static_cast<double>(timer.phase_length().count());
   const float progress =
@@ -108,9 +104,10 @@ Element timer_view(const Timer& timer, const Config& config,
                    text("  " + std::to_string(timer.completed_focus()) + " today") | dim}) |
                  hcenter,
              text(state) | dim | hcenter,
+             active_task.empty() ? text("") : text(active_task) | color(accent) | hcenter,
              text(""),
-             text("space start/pause · r reset · n skip · s settings · ? help · q quit") |
-                 dim | hcenter,
+             text("space start/pause · r reset · n skip") | dim | hcenter,
+             text("t tasks · s settings · ? help · q quit") | dim | hcenter,
          }) |
          center;
 }
@@ -125,9 +122,20 @@ Element help_view() {
              row("space", "start / pause"),
              row("r", "reset current phase"),
              row("n", "skip to next phase"),
+             row("t", "show / hide tasks"),
              row("s", "settings"),
              row("?", "this help"),
              row("q", "quit"),
+             separator(),
+             text("tasks panel") | bold | hcenter,
+             row("j k ↑ ↓", "move selection"),
+             row("a", "add task"),
+             row("A", "add subtask"),
+             row("e", "rename"),
+             row("x", "done / not done"),
+             row("enter", "make active (gets focus time)"),
+             row("d d", "delete"),
+             row("J K", "move task down / up"),
              separator(),
              text("press any key to close") | dim | hcenter,
          }) |
