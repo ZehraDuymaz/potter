@@ -1,4 +1,4 @@
-#include "tasks.hpp"
+#include "core/tasks.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -10,7 +10,7 @@
 
 #include <toml++/toml.hpp>
 
-#include "storage.hpp"
+#include "core/storage.hpp"
 
 namespace potter {
 

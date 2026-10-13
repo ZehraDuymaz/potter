@@ -4,7 +4,7 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that uses a few MB of RAM instead of a whole browser tab.
 
-> Status: **v0.3** — timer, settings, tasks, daily goal and streaks work. Music is next.
+> Status: **v0.4** — timer, settings, tasks, daily goal, streaks and music work.
 
 ---
 
@@ -52,11 +52,15 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - A history view (`h`): a vertical bar chart of the last 14 days with the goal line, current and best streak, and totals.
 - History is saved to `~/.local/share/potter/history.toml`.
 
-### v0.4: Music
+### v0.4: Music ✅
 
-- Ambient or lo-fi playback through `mpv` + `yt-dlp`, which accepts YouTube URLs or local files.
-- Play, pause and volume controls inside potter, plus an option to pause the music during breaks.
-- A saved list of favorite streams.
+- A music screen (`m`) with one box for everything: type words to **search YouTube** (top 5 results, pick one with enter), paste a **link** to play it, or type a **file or folder path** (`~/Music/...`) to play local music.
+- Playback runs through `mpv` in the background (audio only), controlled by potter. YouTube needs `yt-dlp`.
+- Now playing under the timer: `♪ title · ▶ 1:23`.
+- Play/pause with `p` and volume with `+`/`-` from anywhere; the volume is remembered.
+- **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
+- Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
+- Music stops when you quit potter.
 
 ### Later ideas
 
@@ -75,11 +79,15 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `s` | Open settings |
 | `t` | Show / hide the task panel |
 | `h` | History + streaks |
-| `m` | Toggle music (v0.4) |
+| `m` | Music screen |
+| `p` | Play / pause music |
+| `+` / `-` | Music volume |
 | `?` | Help |
 | `q` | Quit |
 
 In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up.
+
+In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
 
@@ -89,8 +97,8 @@ In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` tog
   - CMake downloads FTXUI automatically at build time (`FetchContent`), so nothing needs to be installed by hand.
 - **Build:** CMake (3.20+) with GCC or Clang.
 - **Config:** TOML at `~/.config/potter/config.toml`, read with [toml++](https://github.com/marzer/tomlplusplus) (in the Arch `extra` repo, or fetched by CMake).
-- **Data:** tasks and focus history in `~/.local/share/potter/` (following XDG).
-- **Notifications:** `notify-send`. **Music:** `mpv` + `yt-dlp`. Both are optional runtime dependencies.
+- **Data:** tasks, focus history and favorites in `~/.local/share/potter/` (following XDG).
+- **Notifications:** `notify-send`. **Music:** `mpv` (controlled over its JSON IPC socket, parsed with [nlohmann/json](https://github.com/nlohmann/json)) + `yt-dlp`. All optional at runtime: potter tells you what to install.
 - **Style:** modern C++ with RAII, no raw `new`/`delete`, and `std::chrono` for all time math.
 
 ## Project layout
@@ -99,48 +107,58 @@ In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` tog
 potter/
 ├── CMakeLists.txt
 ├── README.md
+├── CHANGELOG.md
 ├── src/
-│   ├── main.cpp           # start-up, screen + main loop
-│   ├── app.hpp/.cpp       # app state + key handling
-│   ├── timer.hpp/.cpp     # phase logic + focus meter (pure, unit-tested)
-│   ├── tasks.hpp/.cpp     # task list + tasks.toml (pure, unit-tested)
-│   ├── history.hpp/.cpp   # focus per day, goal, streaks (pure, unit-tested)
-│   ├── clock.hpp          # CLOCK_BOOTTIME clock (counts during sleep)
-│   ├── config.hpp/.cpp    # load/save config.toml
-│   ├── storage.hpp/.cpp   # XDG paths + safe file writes
-│   ├── notify.hpp/.cpp    # notify-send
-│   └── ui/
+│   ├── main.cpp               # start-up, screen + main loop
+│   ├── app.hpp/.cpp           # glue: app state, key handling, connects everything
+│   ├── core/                  # pure logic, no UI, unit-tested
+│   │   ├── timer.hpp/.cpp     # Pomodoro phases + focus meter
+│   │   ├── clock.hpp          # a clock that keeps counting during sleep
+│   │   ├── tasks.hpp/.cpp     # task list + tasks.toml
+│   │   ├── history.hpp/.cpp   # focus per day, daily goal, streaks
+│   │   ├── music.hpp/.cpp     # input types, yt-dlp + mpv parsing, favorites
+│   │   ├── config.hpp/.cpp    # load/save config.toml
+│   │   └── storage.hpp/.cpp   # XDG paths + safe file writes
+│   ├── system/                # talks to the OS and other programs
+│   │   ├── process.hpp/.cpp   # starting programs without a shell
+│   │   ├── notify.hpp/.cpp    # desktop notifications (notify-send)
+│   │   ├── player.hpp/.cpp    # mpv in the background, over its IPC socket
+│   │   └── search.hpp/.cpp    # YouTube search with yt-dlp, in the background
+│   └── ui/                    # everything drawn on screen (FTXUI)
 │       ├── views.hpp
 │       ├── timer_view.cpp     # timer + help screens
 │       ├── task_view.cpp      # task panel
 │       ├── history_view.cpp   # history bar chart
+│       ├── music_view.cpp     # music screen
 │       └── settings_view.cpp  # settings screen
-├── tests/
+├── tests/                     # one test program per core module
 │   ├── timer_test.cpp
 │   ├── tasks_test.cpp
-│   └── history_test.cpp
+│   ├── history_test.cpp
+│   └── music_test.cpp
 └── docs/
 ```
 
-`timer.cpp`, `tasks.cpp` and `history.cpp` are kept free of UI code, so the logic can be tested on its own.
+Everything in `core/` is free of UI and system code, so the logic can be tested on its own. Includes are written from `src/`, e.g. `#include "core/timer.hpp"`.
 
 ## Requirements
 
 - Linux
 - A C++20 compiler (GCC 11+ or Clang 14+) and CMake 3.20+
-- Internet access for the first build (CMake downloads FTXUI)
+- Internet access for the first build (CMake downloads FTXUI, and toml++ / nlohmann-json if they aren't installed)
 - Optional: `notify-send` (libnotify) for desktop notifications
+- Optional: `mpv` for music, plus `yt-dlp` for YouTube
 
 On Arch / CachyOS:
 
 ```sh
-sudo pacman -S --needed base-devel cmake libnotify tomlplusplus
+sudo pacman -S --needed base-devel cmake libnotify tomlplusplus nlohmann-json mpv yt-dlp
 ```
 
 On Debian / Ubuntu:
 
 ```sh
-sudo apt install build-essential cmake libnotify-bin
+sudo apt install build-essential cmake libnotify-bin mpv yt-dlp
 ```
 
 ## Install from a release
@@ -171,7 +189,7 @@ cmake --install build --prefix ~/.local
 
 The first configure downloads FTXUI (and toml++ if it isn't installed), so it needs internet once.
 
-AI is used in this project. 
+Built with the help of Claude Code. I designed the features, tested and released it, and I'm learning C++ through it.
 
 ## License
 

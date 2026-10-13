@@ -1,4 +1,4 @@
-#include "history.hpp"
+#include "core/history.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -9,7 +9,7 @@
 
 #include <toml++/toml.hpp>
 
-#include "storage.hpp"
+#include "core/storage.hpp"
 
 namespace potter {
 

@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "tasks.hpp"
+#include "core/tasks.hpp"
 
 using namespace potter;
 using namespace std::chrono_literals;

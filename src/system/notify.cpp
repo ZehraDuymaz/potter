@@ -1,4 +1,4 @@
-#include "notify.hpp"
+#include "system/notify.hpp"
 
 #include <fcntl.h>
 #include <spawn.h>

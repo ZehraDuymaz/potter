@@ -22,6 +22,7 @@ enum Row {
   kAutoFocus,
   kDesktop,
   kBell,
+  kMusicBreaks,
   kTheme,
   kFocusColor,
   kShortColor,
@@ -41,6 +42,7 @@ const char* row_label(int row) {
     case kAutoFocus: return "Auto-start focus";
     case kDesktop: return "Desktop notifications";
     case kBell: return "Terminal bell";
+    case kMusicBreaks: return "Pause music during breaks";
     case kTheme: return "Colors";
     case kFocusColor: return "Focus color";
     case kShortColor: return "Short break color";
@@ -154,6 +156,7 @@ void SettingsMenu::activate() {
     case kAutoFocus: draft_.timer.auto_start_focus ^= true; break;
     case kDesktop: draft_.desktop_notifications ^= true; break;
     case kBell: draft_.terminal_bell ^= true; break;
+    case kMusicBreaks: draft_.pause_music_on_breaks ^= true; break;
     case kTheme:
       draft_.theme =
           draft_.theme == ThemeMode::Terminal ? ThemeMode::Custom : ThemeMode::Terminal;
@@ -201,6 +204,7 @@ Element SettingsMenu::render() const {
       case kAutoFocus: value = text(on_off(timer.auto_start_focus)); break;
       case kDesktop: value = text(on_off(draft_.desktop_notifications)); break;
       case kBell: value = text(on_off(draft_.terminal_bell)); break;
+      case kMusicBreaks: value = text(on_off(draft_.pause_music_on_breaks)); break;
       case kTheme: value = text(custom ? "custom" : "terminal palette"); break;
       default: {
         const std::string& hex = *color_field(draft_, row);
@@ -216,7 +220,7 @@ Element SettingsMenu::render() const {
     Element line = hbox({text(row_label(row)) | size(WIDTH, EQUAL, 30), value});
     if (row == selected_) line = line | inverted;
     rows.push_back(line);
-    if (row == kSessions || row == kDayStart || row == kAutoFocus || row == kBell) {
+    if (row == kSessions || row == kDayStart || row == kAutoFocus || row == kMusicBreaks) {
       rows.push_back(text(""));
     }
   }

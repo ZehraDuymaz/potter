@@ -7,20 +7,27 @@
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/color.hpp>
 
-#include "config.hpp"
-#include "history.hpp"
-#include "tasks.hpp"
-#include "timer.hpp"
+#include "core/config.hpp"
+#include "core/history.hpp"
+#include "core/music.hpp"
+#include "core/tasks.hpp"
+#include "core/timer.hpp"
+
+namespace potter {
+class MpvPlayer;
+class YouTubeSearch;
+}  // namespace potter
 
 namespace potter::ui {
 
 ftxui::Color phase_color(Phase phase, const Config& config);
 
-// `big` draws the countdown in large digits; `active_task` is a line shown
-// under the timer (empty for none); `today` is today's goal progress.
+// `big` draws the countdown in large digits; `active_task` and `music` are
+// lines shown under the timer (empty for none); `today` is goal progress.
 ftxui::Element timer_view(const Timer& timer, const Config& config,
                           Timer::Clock::time_point now, bool big,
-                          const std::string& active_task, const std::string& today);
+                          const std::string& active_task, const std::string& today,
+                          const std::string& music);
 
 ftxui::Element help_view();
 
@@ -81,6 +88,47 @@ class TaskPanel {
   int cursor_ = 0;
   ftxui::Component input_;
   // Wraps input_ so the typing cursor wins over the list's selected row.
+  ftxui::Component field_;
+};
+
+// The music screen: now playing, a search/link box, results and favorites.
+class MusicScreen {
+ public:
+  MusicScreen(MpvPlayer& player, YouTubeSearch& search, Favorites& favorites,
+              const Config& config);
+  MusicScreen(const MusicScreen&) = delete;  // the text input points into this object
+  MusicScreen& operator=(const MusicScreen&) = delete;
+
+  void open();
+  // Handles a key. Always consumes it, since the screen is modal.
+  bool handle(const ftxui::Event& event);
+  bool done() const { return done_; }
+  ftxui::Element render(ftxui::Color accent) const;
+
+ private:
+  // A selectable row: a search result or a favorite.
+  struct Item {
+    bool is_result;
+    std::size_t index;
+  };
+  std::vector<Item> items() const;
+  void submit();
+  void play_item(const Item& item);
+  void toggle_favorite();
+
+  MpvPlayer& player_;
+  YouTubeSearch& search_;
+  Favorites& favorites_;
+  const Config& config_;
+
+  bool typing_ = false;
+  bool done_ = false;
+  int selected_ = 0;
+  int pending_delete_ = -1;  // favorite index waiting for a second 'd'
+  std::string message_;
+  std::string buffer_;
+  int cursor_ = 0;
+  ftxui::Component input_;
   ftxui::Component field_;
 };
 

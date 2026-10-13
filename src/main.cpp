@@ -1,3 +1,5 @@
+#include <signal.h>
+
 #include <chrono>
 #include <cstdio>
 #include <string>
@@ -8,9 +10,10 @@
 #include <ftxui/component/screen_interactive.hpp>
 
 #include "app.hpp"
-#include "config.hpp"
-#include "history.hpp"
-#include "tasks.hpp"
+#include "core/config.hpp"
+#include "core/history.hpp"
+#include "core/music.hpp"
+#include "core/tasks.hpp"
 
 namespace {
 
@@ -39,6 +42,10 @@ int main(int argc, char** argv) {
     return 2;
   }
 
+  // If mpv dies while potter is sending it a command, the write should just
+  // fail instead of killing potter with SIGPIPE.
+  signal(SIGPIPE, SIG_IGN);
+
   const auto path = potter::config_path();
   std::string error;
   potter::Config config = potter::load_config(path, &error);
@@ -48,8 +55,9 @@ int main(int argc, char** argv) {
   auto screen = ScreenInteractive::Fullscreen();
   // potter quits on Ctrl-C itself, so it can save before exiting.
   screen.ForceHandleCtrlC(false);
-  potter::App app(std::move(config), path, potter::tasks_path(), potter::history_path(),
-                  screen.ExitLoopClosure());
+  const potter::Paths paths{path, potter::tasks_path(), potter::history_path(),
+                            potter::favorites_path()};
+  potter::App app(std::move(config), paths, screen.ExitLoopClosure());
   app.set_status(error);
 
   auto root = CatchEvent(Renderer([&] { return app.render(); }),

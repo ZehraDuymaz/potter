@@ -1,4 +1,4 @@
-#include "config.hpp"
+#include "core/config.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -6,7 +6,7 @@
 
 #include <toml++/toml.hpp>
 
-#include "storage.hpp"
+#include "core/storage.hpp"
 
 namespace potter {
 
@@ -108,6 +108,18 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
     }
   }
 
+  if (const auto* t = root["music"].as_table()) {
+    if (auto v = (*t)["volume"].value<int64_t>()) {
+      config.music_volume = static_cast<int>(std::clamp<int64_t>(*v, 0, 100));
+    }
+    config.pause_music_on_breaks =
+        (*t)["pause_on_breaks"].value_or(config.pause_music_on_breaks);
+    if (auto v = (*t)["search_results"].value<int64_t>()) {
+      config.music_search_results = static_cast<int>(std::clamp<int64_t>(*v, 1, 20));
+    }
+    config.mpv_args = (*t)["mpv_args"].value_or(config.mpv_args);
+  }
+
   return config;
 }
 
@@ -144,6 +156,13 @@ bool save_config(const Config& config, const std::filesystem::path& path,
        toml::table{
            {"daily_minutes", config.daily_goal_minutes},
            {"day_start_hour", config.day_start_hour},
+       }},
+      {"music",
+       toml::table{
+           {"volume", config.music_volume},
+           {"pause_on_breaks", config.pause_music_on_breaks},
+           {"search_results", config.music_search_results},
+           {"mpv_args", config.mpv_args},
        }},
   };
 

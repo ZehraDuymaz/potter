@@ -3,8 +3,8 @@
 
 #include <cstdio>
 
-#include "config.hpp"
-#include "timer.hpp"
+#include "core/config.hpp"
+#include "core/timer.hpp"
 
 using namespace potter;
 using namespace std::chrono_literals;

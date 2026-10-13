@@ -71,7 +71,8 @@ Color phase_color(Phase phase, const Config& config) {
 
 Element timer_view(const Timer& timer, const Config& config,
                    Timer::Clock::time_point now, bool big,
-                   const std::string& active_task, const std::string& today) {
+                   const std::string& active_task, const std::string& today,
+                   const std::string& music) {
   const Color accent = phase_color(timer.phase(), config);
   const auto remaining = timer.remaining(now);
   const std::string clock = format_time(remaining);
@@ -93,24 +94,32 @@ Element timer_view(const Timer& timer, const Config& config,
                       : timer.untouched() ? "ready · press space"
                                           : "paused";
 
-  return vbox({
-             text(phase_name(timer.phase())) | bold | color(accent) | hcenter,
-             text(""),
-             countdown | color(accent) | hcenter,
-             text(""),
-             gauge(progress) | color(accent) | size(WIDTH, EQUAL, 40) | hcenter,
-             text(""),
-             hbox({text(dots) | color(accent), text("  " + today) | dim}) | hcenter,
-             text(state) | dim | hcenter,
-             active_task.empty()
-                 ? text("")
-                 : paragraphAlignCenter(active_task) | color(accent) |
-                       size(WIDTH, LESS_THAN, 50) | hcenter,
-             text(""),
-             text("space start/pause · r reset · n skip") | dim | hcenter,
-             text("t tasks · h history · s settings · ? help · q quit") | dim | hcenter,
-         }) |
-         center;
+  Elements lines = {
+      text(phase_name(timer.phase())) | bold | color(accent) | hcenter,
+      text(""),
+      countdown | color(accent) | hcenter,
+      text(""),
+      gauge(progress) | color(accent) | size(WIDTH, EQUAL, 40) | hcenter,
+      // Blank lines give the dots, the task and the music room to breathe.
+      text(""),
+      text(""),
+      hbox({text(dots) | color(accent), text("  " + today) | dim}) | hcenter,
+      text(state) | dim | hcenter,
+  };
+  if (!active_task.empty()) {
+    lines.push_back(text(""));
+    lines.push_back(paragraphAlignCenter(active_task) | color(accent) |
+                    size(WIDTH, LESS_THAN, 50) | hcenter);
+  }
+  if (!music.empty()) {
+    lines.push_back(text(""));
+    lines.push_back(paragraphAlignCenter(music) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
+  }
+  lines.push_back(text(""));
+  lines.push_back(text(""));
+  lines.push_back(text("space start/pause · r reset · n skip · s settings") | dim | hcenter);
+  lines.push_back(text("t tasks · m music · h history · ? help · q quit") | dim | hcenter);
+  return vbox(std::move(lines)) | center;
 }
 
 Element help_view() {
@@ -125,6 +134,9 @@ Element help_view() {
              row("n", "skip to next phase"),
              row("t", "show / hide tasks"),
              row("h", "history + streaks"),
+             row("m", "music"),
+             row("p", "play / pause music"),
+             row("+ -", "music volume"),
              row("s", "settings"),
              row("?", "this help"),
              row("q", "quit"),

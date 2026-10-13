@@ -6,7 +6,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include "history.hpp"
+#include "core/history.hpp"
 
 using namespace potter;
 using namespace std::chrono;

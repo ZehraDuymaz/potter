@@ -4,7 +4,7 @@
 
 #include <ftxui/screen/terminal.hpp>
 
-#include "notify.hpp"
+#include "system/notify.hpp"
 
 using namespace ftxui;
 
@@ -20,17 +20,16 @@ constexpr int kMinWidthForTasks = 82;
 
 }  // namespace
 
-App::App(Config config, std::filesystem::path config_path, std::filesystem::path tasks_path,
-         std::filesystem::path history_path, std::function<void()> quit)
+App::App(Config config, Paths paths, std::function<void()> quit)
     : config_(std::move(config)),
-      config_path_(std::move(config_path)),
+      paths_(std::move(paths)),
       quit_(std::move(quit)),
       timer_(config_.timer),
-      tasks_path_(std::move(tasks_path)),
-      history_path_(std::move(history_path)) {
+      player_(config_.music_volume, config_.mpv_args) {
   std::string error;
-  if (!tasks_.load(tasks_path_, &error)) status_ = error;
-  if (!history_.load(history_path_, &error)) status_ = error;
+  if (!tasks_.load(paths_.tasks, &error)) status_ = error;
+  if (!history_.load(paths_.history, &error)) status_ = error;
+  if (!favorites_.load(paths_.favorites, &error)) status_ = error;
   last_save_ = Timer::Clock::now();
 }
 
@@ -41,7 +40,7 @@ bool App::on_event(const Event& event) {
   // Credit focus time to the current task before anything can change it.
   collect_focus(now);
 
-  // Handle Ctrl-C ourselves so tasks get saved on the way out.
+  // Handle Ctrl-C ourselves so everything gets saved on the way out.
   if (event == Event::CtrlC) {
     quit_();
     return true;
@@ -61,6 +60,22 @@ bool App::on_event(const Event& event) {
       }
       return false;
 
+    case View::Music: {
+      // Pausing or playing by hand overrides the automatic break pause.
+      if (event == Event::Character('p') || event == Event::Character(' ') ||
+          event == Event::Return) {
+        paused_for_break_ = false;
+      }
+      music_screen_.handle(event);
+      if (player_.volume() != config_.music_volume) {
+        config_.music_volume = player_.volume();
+        config_dirty_ = true;
+      }
+      if (favorites_.dirty()) save_data(now);
+      if (music_screen_.done()) view_ = View::Timer;
+      return true;
+    }
+
     case View::Timer:
       break;
   }
@@ -76,13 +91,29 @@ bool App::on_event(const Event& event) {
     timer_.reset();
   } else if (event == Event::Character('n')) {
     timer_.skip();
+    on_phase_changed();
   } else if (event == Event::Character('t')) {
     config_.show_tasks = !config_.show_tasks;
-    save_config(config_, config_path_);
+    save_config(config_, paths_.config);
     if (config_.show_tasks && !tasks_visible()) {
       set_status("make the window wider to see tasks");
       return true;
     }
+  } else if (event == Event::Character('m')) {
+    music_screen_.open();
+    view_ = View::Music;
+  } else if (event == Event::Character('p')) {
+    if (player_.state().has_media()) {
+      player_.toggle_pause();
+      paused_for_break_ = false;
+    } else {
+      set_status("nothing playing · press m for music");
+      return true;
+    }
+  } else if (event == Event::Character('+') || event == Event::Character('=')) {
+    change_volume(+5);
+  } else if (event == Event::Character('-')) {
+    change_volume(-5);
   } else if (event == Event::Character('s')) {
     settings_.open(config_);
     view_ = View::Settings;
@@ -105,23 +136,25 @@ Element App::render() {
   const bool show_tasks = tasks_visible() && view_ == View::Timer;
   const int timer_width = term.dimx - (show_tasks ? ui::TaskPanel::kWidth + 1 : 0);
   const bool big = timer_width >= 50 && term.dimy >= 14;
+  const Color accent = ui::phase_color(Phase::Focus, config_);
 
   Element body;
   switch (view_) {
     case View::Timer:
-      body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line());
+      body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line(),
+                            music_line());
       if (show_tasks) {
         body = hbox({
             body | flex,
             separator(),
-            task_panel_.render(ui::phase_color(Phase::Focus, config_)) |
-                size(WIDTH, EQUAL, ui::TaskPanel::kWidth),
+            task_panel_.render(accent) | size(WIDTH, EQUAL, ui::TaskPanel::kWidth),
         });
       }
       break;
     case View::Settings: body = settings_.render(); break;
     case View::Help: body = ui::help_view(); break;
     case View::History: body = ui::history_view(history_, today(), config_); break;
+    case View::Music: body = music_screen_.render(accent); break;
   }
   if (status_.empty()) return body;
   return vbox({body | flex, text(status_) | color(Color::Red) | hcenter});
@@ -131,7 +164,10 @@ void App::tick() {
   const auto now = Timer::Clock::now();
   collect_focus(now);  // up to the end of the phase, before it moves on
   const auto finished = timer_.update(now);
-  if (finished) on_phase_finished(*finished);
+  if (finished) {
+    on_phase_finished(*finished);
+    on_phase_changed();
+  }
 
   if (data_dirty() && (finished || now - last_save_ >= kSaveInterval)) save_data(now);
 }
@@ -140,6 +176,8 @@ void App::shutdown() {
   const auto now = Timer::Clock::now();
   collect_focus(now);
   if (data_dirty()) save_data(now);
+  if (config_dirty_) save_config(config_, paths_.config);
+  player_.stop();  // music doesn't outlive potter
 }
 
 void App::collect_focus(Timer::Clock::time_point now) {
@@ -153,8 +191,27 @@ void App::collect_focus(Timer::Clock::time_point now) {
 void App::save_data(Timer::Clock::time_point now) {
   last_save_ = now;
   std::string error;
-  if (tasks_.dirty() && !tasks_.save(tasks_path_, &error)) status_ = error;
-  if (history_.dirty() && !history_.save(history_path_, &error)) status_ = error;
+  if (tasks_.dirty() && !tasks_.save(paths_.tasks, &error)) status_ = error;
+  if (history_.dirty() && !history_.save(paths_.history, &error)) status_ = error;
+  if (favorites_.dirty() && !favorites_.save(paths_.favorites, &error)) status_ = error;
+}
+
+void App::change_volume(int delta) {
+  config_.music_volume = player_.change_volume(delta);
+  config_dirty_ = true;
+}
+
+void App::on_phase_changed() {
+  if (!config_.pause_music_on_breaks) return;
+  if (timer_.phase() != Phase::Focus) {
+    if (player_.state().playing()) {
+      player_.set_pause(true);
+      paused_for_break_ = true;
+    }
+  } else if (paused_for_break_) {
+    player_.set_pause(false);
+    paused_for_break_ = false;
+  }
 }
 
 Day App::today() const {
@@ -172,6 +229,18 @@ std::string App::today_line() const {
     line += " · 🔥 " + std::to_string(streak);
   }
   return line;
+}
+
+std::string App::music_line() const {
+  const PlayerState state = player_.state();
+  if (state.has_media()) {
+    std::string line = "♪ " + player_.display_title() + " · " + (state.paused ? "⏸ " : "▶ ") +
+                       format_clock(state.time_pos.value_or(0));
+    if (paused_for_break_) line += " · paused for the break";
+    return line;
+  }
+  if (player_.loading()) return "♪ loading " + player_.display_title() + "…";
+  return "";
 }
 
 bool App::tasks_visible() const {
@@ -219,7 +288,8 @@ void App::close_settings() {
   view_ = View::Timer;
 
   std::string error;
-  if (!save_config(config_, config_path_, &error)) status_ = error;
+  if (!save_config(config_, paths_.config, &error)) status_ = error;
+  config_dirty_ = false;
 }
 
 }  // namespace potter

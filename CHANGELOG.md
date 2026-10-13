@@ -5,6 +5,22 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-13
+
+### Added
+- Music screen (`m`): search YouTube (top results, pick one), paste a link, or play a local file/folder — all from one box.
+- Playback through mpv in the background, controlled over its IPC socket; YouTube via yt-dlp.
+- Now-playing line under the timer; `p` play/pause and `+`/`-` volume from anywhere (volume is remembered).
+- Favorites (`f`), saved to `~/.local/share/potter/favorites.toml`.
+- "Pause music during breaks" setting (on by default); music resumes when focus starts.
+- Clear instructions when mpv or yt-dlp isn't installed.
+- New dependency: nlohmann/json (system package, or downloaded by CMake).
+
+### Changed
+- Music stops when potter quits; Ctrl-C quits cleanly as before.
+- Key hints under the timer now mention music; "s settings" moved to the first line.
+- Source code reorganized into `src/core` (pure logic), `src/system` (OS and other programs) and `src/ui`.
+
 ## [0.3.0] - 2026-10-13
 
 ### Added

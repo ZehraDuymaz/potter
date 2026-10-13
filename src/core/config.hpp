@@ -6,7 +6,7 @@
 #include <string>
 #include <string_view>
 
-#include "timer.hpp"
+#include "core/timer.hpp"
 
 namespace potter {
 
@@ -40,6 +40,12 @@ struct Config {
   // Hour (0-12) at which a new day starts, so late-night focus still counts
   // for the day before.
   int day_start_hour = 4;
+
+  // Music (needs mpv; YouTube search also needs yt-dlp).
+  int music_volume = 70;              // 0-100, remembered between runs
+  bool pause_music_on_breaks = true;  // pause during breaks, resume on focus
+  int music_search_results = 5;       // 1-20
+  std::string mpv_args;               // extra mpv options, e.g. "--audio-device=..."
 };
 
 // $XDG_CONFIG_HOME/potter/config.toml, or ~/.config/potter/config.toml.
