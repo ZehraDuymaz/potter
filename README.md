@@ -2,7 +2,7 @@
 
 A lightweight Pomodoro timer for the terminal.
 
-potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that uses a few MB of RAM instead of a whole browser tab.
+potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that's much lighter than a browser tab.
 
 > Status: **v0.4** — timer, settings, tasks, daily goal, streaks and music work.
 
@@ -17,7 +17,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 
 ## Goals
 
-- **Light.** A single small binary that idles near 0% CPU and uses under 10 MB of RAM.
+- **Light.** potter is a small native program that barely touches your CPU and uses only a few MB of memory. Music plays through mpv, which needs more while it's playing, but the whole thing still stays far lighter than a browser tab.
 - **Fits into a riced environment.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
 - **Keyboard-first.** Every action has a key, and the mouse is optional.
 - **Local only.** No accounts and no network, except for music you choose to play.
