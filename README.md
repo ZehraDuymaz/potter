@@ -8,13 +8,17 @@ potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, strea
 
 ---
 
+<img width="1920" height="1171" alt="image" src="https://github.com/user-attachments/assets/37410d34-44f9-4b72-870a-7352bb2a3745" />
+
+---
+
 ## Why Potter 
 I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where I can basically search in YouTube and play things using yt-dlp and mpv. And I think it is one of the most amazing things in my computer. Definitely not exaggerating. Moreover, I split my terminal and open cava and it is an amazing pleasure. And I also love using blanket and termdown and also a nice todos thingy. So, I thought what if we can combine these all to a single terminal app. 
 
 ## Goals
 
 - **Light.** A single small binary that idles near 0% CPU and uses under 10 MB of RAM.
-- **Fits into a riced desktop.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
+- **Fits into a riced environment.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
 - **Keyboard-first.** Every action has a key, and the mouse is optional.
 - **Local only.** No accounts and no network, except for music you choose to play.
 - **Accurate time.** The countdown is based on end times measured with `CLOCK_BOOTTIME`, not on counting ticks, so it doesn't drift and keeps counting while the laptop sleeps.
