@@ -68,6 +68,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 
 ### Later ideas
 
+- Detailed history, divided into tasks. Even tho you complete or delete a task you can see how much time you spent on it.
 - Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
 - Control from scripts or keybinds (`potter toggle`, `potter skip`) through a small local socket.
 - A compact mode for a tiny floating terminal window (Hyprland float rule), which works like picture-in-picture.
