@@ -8,6 +8,7 @@
 #include <ftxui/dom/elements.hpp>
 
 #include "config.hpp"
+#include "history.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
 #include "ui/views.hpp"
@@ -18,7 +19,7 @@ namespace potter {
 class App {
  public:
   App(Config config, std::filesystem::path config_path, std::filesystem::path tasks_path,
-      std::function<void()> quit);
+      std::filesystem::path history_path, std::function<void()> quit);
 
   bool on_event(const ftxui::Event& event);
   ftxui::Element render();
@@ -31,14 +32,21 @@ class App {
   void set_status(std::string status) { status_ = std::move(status); }
 
  private:
-  enum class View { Timer, Settings, Help };
+  enum class View { Timer, Settings, Help, History };
 
   void on_phase_finished(Phase finished);
+  void on_goal_reached();
   void close_settings();
-  // Credits focus time that passed since the last call to the active task.
+  // Credits focus time that passed since the last call to the active task
+  // and to today's history.
   void collect_focus(Timer::Clock::time_point now);
-  void save_tasks(Timer::Clock::time_point now);
+  // Saves tasks and history if they changed.
+  void save_data(Timer::Clock::time_point now);
+  bool data_dirty() const { return tasks_.dirty() || history_.dirty(); }
+  // The current day, according to the day-start setting.
+  Day today() const;
   std::string active_task_line() const;
+  std::string today_line() const;
   // The task panel is shown when enabled and the window is wide enough.
   bool tasks_visible() const;
 
@@ -49,6 +57,8 @@ class App {
   FocusMeter focus_meter_;
   TaskList tasks_;
   std::filesystem::path tasks_path_;
+  History history_;
+  std::filesystem::path history_path_;
   Timer::Clock::time_point last_save_{};
   ui::SettingsMenu settings_;
   ui::TaskPanel task_panel_{tasks_};

@@ -9,6 +9,7 @@
 
 #include "app.hpp"
 #include "config.hpp"
+#include "history.hpp"
 #include "tasks.hpp"
 
 namespace {
@@ -47,7 +48,8 @@ int main(int argc, char** argv) {
   auto screen = ScreenInteractive::Fullscreen();
   // potter quits on Ctrl-C itself, so it can save before exiting.
   screen.ForceHandleCtrlC(false);
-  potter::App app(std::move(config), path, potter::tasks_path(), screen.ExitLoopClosure());
+  potter::App app(std::move(config), path, potter::tasks_path(), potter::history_path(),
+                  screen.ExitLoopClosure());
   app.set_status(error);
 
   auto root = CatchEvent(Renderer([&] { return app.render(); }),

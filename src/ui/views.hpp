@@ -8,6 +8,7 @@
 #include <ftxui/screen/color.hpp>
 
 #include "config.hpp"
+#include "history.hpp"
 #include "tasks.hpp"
 #include "timer.hpp"
 
@@ -16,12 +17,15 @@ namespace potter::ui {
 ftxui::Color phase_color(Phase phase, const Config& config);
 
 // `big` draws the countdown in large digits; `active_task` is a line shown
-// under the timer (empty for none).
+// under the timer (empty for none); `today` is today's goal progress.
 ftxui::Element timer_view(const Timer& timer, const Config& config,
                           Timer::Clock::time_point now, bool big,
-                          const std::string& active_task);
+                          const std::string& active_task, const std::string& today);
 
 ftxui::Element help_view();
+
+// Vertical bar chart of the last two weeks, with the goal line and streaks.
+ftxui::Element history_view(const History& history, Day today, const Config& config);
 
 // The settings screen. It edits a draft copy of the config; the app reads
 // the draft back once the menu is closed.

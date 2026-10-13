@@ -99,6 +99,15 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
     config.show_tasks = (*t)["show_panel"].value_or(config.show_tasks);
   }
 
+  if (const auto* t = root["goals"].as_table()) {
+    if (auto v = (*t)["daily_minutes"].value<int64_t>()) {
+      config.daily_goal_minutes = static_cast<int>(std::clamp<int64_t>(*v, 5, 720));
+    }
+    if (auto v = (*t)["day_start_hour"].value<int64_t>()) {
+      config.day_start_hour = static_cast<int>(std::clamp<int64_t>(*v, 0, 12));
+    }
+  }
+
   return config;
 }
 
@@ -130,6 +139,11 @@ bool save_config(const Config& config, const std::filesystem::path& path,
       {"tasks",
        toml::table{
            {"show_panel", config.show_tasks},
+       }},
+      {"goals",
+       toml::table{
+           {"daily_minutes", config.daily_goal_minutes},
+           {"day_start_hour", config.day_start_hour},
        }},
   };
 

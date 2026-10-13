@@ -21,14 +21,16 @@ constexpr int kMinWidthForTasks = 82;
 }  // namespace
 
 App::App(Config config, std::filesystem::path config_path, std::filesystem::path tasks_path,
-         std::function<void()> quit)
+         std::filesystem::path history_path, std::function<void()> quit)
     : config_(std::move(config)),
       config_path_(std::move(config_path)),
       quit_(std::move(quit)),
       timer_(config_.timer),
-      tasks_path_(std::move(tasks_path)) {
+      tasks_path_(std::move(tasks_path)),
+      history_path_(std::move(history_path)) {
   std::string error;
   if (!tasks_.load(tasks_path_, &error)) status_ = error;
+  if (!history_.load(history_path_, &error)) status_ = error;
   last_save_ = Timer::Clock::now();
 }
 
@@ -52,6 +54,7 @@ bool App::on_event(const Event& event) {
       return true;
 
     case View::Help:
+    case View::History:
       if (event.is_character() || event == Event::Escape || event == Event::Return) {
         view_ = View::Timer;
         return true;
@@ -63,7 +66,7 @@ bool App::on_event(const Event& event) {
   }
 
   if (tasks_visible() && task_panel_.handle(event)) {
-    if (tasks_.dirty()) save_tasks(now);
+    if (data_dirty()) save_data(now);
     return true;
   }
 
@@ -83,6 +86,8 @@ bool App::on_event(const Event& event) {
   } else if (event == Event::Character('s')) {
     settings_.open(config_);
     view_ = View::Settings;
+  } else if (event == Event::Character('h')) {
+    view_ = View::History;
   } else if (event == Event::Character('?')) {
     view_ = View::Help;
   } else if (event == Event::Character('q')) {
@@ -104,7 +109,7 @@ Element App::render() {
   Element body;
   switch (view_) {
     case View::Timer:
-      body = ui::timer_view(timer_, config_, now, big, active_task_line());
+      body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line());
       if (show_tasks) {
         body = hbox({
             body | flex,
@@ -116,6 +121,7 @@ Element App::render() {
       break;
     case View::Settings: body = settings_.render(); break;
     case View::Help: body = ui::help_view(); break;
+    case View::History: body = ui::history_view(history_, today(), config_); break;
   }
   if (status_.empty()) return body;
   return vbox({body | flex, text(status_) | color(Color::Red) | hcenter});
@@ -127,25 +133,45 @@ void App::tick() {
   const auto finished = timer_.update(now);
   if (finished) on_phase_finished(*finished);
 
-  if (tasks_.dirty() && (finished || now - last_save_ >= kSaveInterval)) save_tasks(now);
+  if (data_dirty() && (finished || now - last_save_ >= kSaveInterval)) save_data(now);
 }
 
 void App::shutdown() {
   const auto now = Timer::Clock::now();
   collect_focus(now);
-  if (tasks_.dirty()) save_tasks(now);
+  if (data_dirty()) save_data(now);
 }
 
 void App::collect_focus(Timer::Clock::time_point now) {
   // Always measure, so time with no active task isn't credited later.
   const auto amount = focus_meter_.collect(timer_, now);
+  if (amount <= amount.zero()) return;
   if (tasks_.active() != 0) tasks_.add_focus(tasks_.active(), amount);
+  if (history_.add_focus(today(), amount, config_.daily_goal_minutes)) on_goal_reached();
 }
 
-void App::save_tasks(Timer::Clock::time_point now) {
+void App::save_data(Timer::Clock::time_point now) {
   last_save_ = now;
   std::string error;
-  if (!tasks_.save(tasks_path_, &error)) status_ = error;
+  if (tasks_.dirty() && !tasks_.save(tasks_path_, &error)) status_ = error;
+  if (history_.dirty() && !history_.save(history_path_, &error)) status_ = error;
+}
+
+Day App::today() const {
+  return day_of(std::chrono::system_clock::now(), config_.day_start_hour);
+}
+
+std::string App::today_line() const {
+  const DayStats stats = history_.get(today());
+  std::string focus = format_focus(stats.focus);
+  if (focus.empty()) focus = "0m";
+  std::string line =
+      focus + " / " + format_focus(std::chrono::minutes(config_.daily_goal_minutes)) + " today";
+  if (stats.goal_met()) line += " ✓";
+  if (const int streak = history_.streak(today()); streak > 0) {
+    line += " · 🔥 " + std::to_string(streak);
+  }
+  return line;
 }
 
 bool App::tasks_visible() const {
@@ -163,6 +189,8 @@ std::string App::active_task_line() const {
 }
 
 void App::on_phase_finished(Phase finished) {
+  if (finished == Phase::Focus) history_.add_session(today(), config_.daily_goal_minutes);
+
   if (config_.terminal_bell) std::cout << '\a' << std::flush;
   if (!config_.desktop_notifications) return;
 
@@ -175,9 +203,19 @@ void App::on_phase_finished(Phase finished) {
   }
 }
 
+void App::on_goal_reached() {
+  if (config_.terminal_bell) std::cout << '\a' << std::flush;
+  if (!config_.desktop_notifications) return;
+  send_notification(
+      "Daily goal reached 🎉",
+      format_focus(std::chrono::minutes(config_.daily_goal_minutes)) + " of focus today. Nice!");
+}
+
 void App::close_settings() {
   config_ = settings_.draft();
   timer_.apply_settings(config_.timer);
+  // A changed goal applies to today too; past days keep their own goal.
+  history_.set_goal(today(), config_.daily_goal_minutes);
   view_ = View::Timer;
 
   std::string error;

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cctype>
+#include <cstdio>
 #include <string>
 
 #include "ui/views.hpp"
@@ -15,6 +16,8 @@ enum Row {
   kShortBreak,
   kLongBreak,
   kSessions,
+  kGoal,
+  kDayStart,
   kAutoBreaks,
   kAutoFocus,
   kDesktop,
@@ -32,6 +35,8 @@ const char* row_label(int row) {
     case kShortBreak: return "Short break length";
     case kLongBreak: return "Long break length";
     case kSessions: return "Sessions before long break";
+    case kGoal: return "Daily focus goal";
+    case kDayStart: return "New day starts at";
     case kAutoBreaks: return "Auto-start breaks";
     case kAutoFocus: return "Auto-start focus";
     case kDesktop: return "Desktop notifications";
@@ -132,6 +137,10 @@ void SettingsMenu::adjust(int delta) {
       timer.sessions_before_long_break =
           std::clamp(timer.sessions_before_long_break + delta, 1, 12);
       break;
+    case kGoal:  // in steps of 5 minutes
+      draft_.daily_goal_minutes = std::clamp(draft_.daily_goal_minutes + delta * 5, 5, 720);
+      break;
+    case kDayStart: draft_.day_start_hour = std::clamp(draft_.day_start_hour + delta, 0, 12); break;
     case kFocusColor:
     case kShortColor:
     case kLongColor: break;  // edited as text, not stepped
@@ -179,6 +188,15 @@ Element SettingsMenu::render() const {
       case kSessions:
         value = text("‹ " + std::to_string(timer.sessions_before_long_break) + " ›");
         break;
+      case kGoal:
+        value = text("‹ " + format_focus(std::chrono::minutes(draft_.daily_goal_minutes)) + " ›");
+        break;
+      case kDayStart: {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "‹ %02d:00 ›", draft_.day_start_hour);
+        value = text(buf);
+        break;
+      }
       case kAutoBreaks: value = text(on_off(timer.auto_start_breaks)); break;
       case kAutoFocus: value = text(on_off(timer.auto_start_focus)); break;
       case kDesktop: value = text(on_off(draft_.desktop_notifications)); break;
@@ -198,7 +216,9 @@ Element SettingsMenu::render() const {
     Element line = hbox({text(row_label(row)) | size(WIDTH, EQUAL, 30), value});
     if (row == selected_) line = line | inverted;
     rows.push_back(line);
-    if (row == kSessions || row == kAutoFocus || row == kBell) rows.push_back(text(""));
+    if (row == kSessions || row == kDayStart || row == kAutoFocus || row == kBell) {
+      rows.push_back(text(""));
+    }
   }
 
   rows.push_back(separator());

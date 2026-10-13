@@ -34,6 +34,12 @@ struct Config {
 
   // Whether the task panel is shown next to the timer (toggled with 't').
   bool show_tasks = true;
+
+  // Daily focus goal, in minutes (default: 4 × 25 min).
+  int daily_goal_minutes = 100;
+  // Hour (0-12) at which a new day starts, so late-night focus still counts
+  // for the day before.
+  int day_start_hour = 4;
 };
 
 // $XDG_CONFIG_HOME/potter/config.toml, or ~/.config/potter/config.toml.

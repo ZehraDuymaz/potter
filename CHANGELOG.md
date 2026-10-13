@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-13
+
+### Added
+- Daily focus goal in minutes (default 1h 40m), set in the settings screen.
+- Today's progress and streak under the timer, and a notification when the goal is reached.
+- Streaks: consecutive days that met their goal; today doesn't break a streak while in progress.
+- "New day starts at" setting (default 04:00), so late-night focus counts for the day before.
+- History view (`h`): vertical bar chart of the last 14 days with goal line, current/best streak and totals.
+- Focus history saved to `~/.local/share/potter/history.toml`.
+
+### Changed
+- The "N today" session count under the timer is replaced by today's focus time toward the goal.
+
 ## [0.2.1] - 2026-10-12
 
 ### Fixed

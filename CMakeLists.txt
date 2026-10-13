@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(potter VERSION 0.2.1 LANGUAGES CXX)
+project(potter VERSION 0.3.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -38,6 +38,7 @@ add_library(potter_core STATIC
   src/timer.cpp
   src/config.cpp
   src/tasks.cpp
+  src/history.cpp
   src/storage.cpp
 )
 target_include_directories(potter_core PUBLIC src)
@@ -51,6 +52,7 @@ add_executable(potter
   src/ui/timer_view.cpp
   src/ui/settings_view.cpp
   src/ui/task_view.cpp
+  src/ui/history_view.cpp
 )
 target_link_libraries(potter PRIVATE
   potter_core
@@ -72,3 +74,7 @@ add_test(NAME timer_test COMMAND timer_test)
 add_executable(tasks_test tests/tasks_test.cpp)
 target_link_libraries(tasks_test PRIVATE potter_core)
 add_test(NAME tasks_test COMMAND tasks_test)
+
+add_executable(history_test tests/history_test.cpp)
+target_link_libraries(history_test PRIVATE potter_core)
+add_test(NAME history_test COMMAND history_test)

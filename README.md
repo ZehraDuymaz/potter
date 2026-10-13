@@ -4,7 +4,7 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that uses a few MB of RAM instead of a whole browser tab.
 
-> Status: **v0.2** — timer, settings and tasks work. Streaks and music are next.
+> Status: **v0.3** — timer, settings, tasks, daily goal and streaks work. Music is next.
 
 ---
 
@@ -43,10 +43,14 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - Per-task time tracking, with subtasks' time rolled up into their parent.
 - Tasks are saved to `~/.local/share/potter/tasks.toml`, at least every 30 seconds while the timer runs and whenever you change something.
 
-### v0.3: Streaks and goals
+### v0.3: Streaks and goals ✅
 
-- A daily focus goal (e.g. 4 sessions).
-- A daily streak counter and a simple history view (sessions per day).
+- A daily focus goal in minutes (default 1h 40m, i.e. 4 × 25 min). Every focused minute counts, with or without an active task.
+- Today's progress and your streak under the timer: `45m / 1h 40m today · 🔥 5`, plus a notification when you reach the goal.
+- A streak counts consecutive days that met their goal. Today doesn't break it while it's still in progress.
+- A new day starts at 4 AM by default (adjustable), so late-night focus counts for the day before.
+- A history view (`h`): a vertical bar chart of the last 14 days with the goal line, current and best streak, and totals.
+- History is saved to `~/.local/share/potter/history.toml`.
 
 ### v0.4: Music
 
@@ -70,6 +74,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `n` | Skip to next phase |
 | `s` | Open settings |
 | `t` | Show / hide the task panel |
+| `h` | History + streaks |
 | `m` | Toggle music (v0.4) |
 | `?` | Help |
 | `q` | Quit |
@@ -84,7 +89,7 @@ In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` tog
   - CMake downloads FTXUI automatically at build time (`FetchContent`), so nothing needs to be installed by hand.
 - **Build:** CMake (3.20+) with GCC or Clang.
 - **Config:** TOML at `~/.config/potter/config.toml`, read with [toml++](https://github.com/marzer/tomlplusplus) (in the Arch `extra` repo, or fetched by CMake).
-- **Data:** tasks (and later history and streaks) in `~/.local/share/potter/` (following XDG).
+- **Data:** tasks and focus history in `~/.local/share/potter/` (following XDG).
 - **Notifications:** `notify-send`. **Music:** `mpv` + `yt-dlp`. Both are optional runtime dependencies.
 - **Style:** modern C++ with RAII, no raw `new`/`delete`, and `std::chrono` for all time math.
 
@@ -99,6 +104,7 @@ potter/
 │   ├── app.hpp/.cpp       # app state + key handling
 │   ├── timer.hpp/.cpp     # phase logic + focus meter (pure, unit-tested)
 │   ├── tasks.hpp/.cpp     # task list + tasks.toml (pure, unit-tested)
+│   ├── history.hpp/.cpp   # focus per day, goal, streaks (pure, unit-tested)
 │   ├── clock.hpp          # CLOCK_BOOTTIME clock (counts during sleep)
 │   ├── config.hpp/.cpp    # load/save config.toml
 │   ├── storage.hpp/.cpp   # XDG paths + safe file writes
@@ -107,14 +113,16 @@ potter/
 │       ├── views.hpp
 │       ├── timer_view.cpp     # timer + help screens
 │       ├── task_view.cpp      # task panel
+│       ├── history_view.cpp   # history bar chart
 │       └── settings_view.cpp  # settings screen
 ├── tests/
 │   ├── timer_test.cpp
-│   └── tasks_test.cpp
+│   ├── tasks_test.cpp
+│   └── history_test.cpp
 └── docs/
 ```
 
-`timer.cpp` and `tasks.cpp` are kept free of UI code, so the logic can be tested on its own.
+`timer.cpp`, `tasks.cpp` and `history.cpp` are kept free of UI code, so the logic can be tested on its own.
 
 ## Requirements
 

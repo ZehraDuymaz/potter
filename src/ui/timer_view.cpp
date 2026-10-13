@@ -71,7 +71,7 @@ Color phase_color(Phase phase, const Config& config) {
 
 Element timer_view(const Timer& timer, const Config& config,
                    Timer::Clock::time_point now, bool big,
-                   const std::string& active_task) {
+                   const std::string& active_task, const std::string& today) {
   const Color accent = phase_color(timer.phase(), config);
   const auto remaining = timer.remaining(now);
   const std::string clock = format_time(remaining);
@@ -100,9 +100,7 @@ Element timer_view(const Timer& timer, const Config& config,
              text(""),
              gauge(progress) | color(accent) | size(WIDTH, EQUAL, 40) | hcenter,
              text(""),
-             hbox({text(dots) | color(accent),
-                   text("  " + std::to_string(timer.completed_focus()) + " today") | dim}) |
-                 hcenter,
+             hbox({text(dots) | color(accent), text("  " + today) | dim}) | hcenter,
              text(state) | dim | hcenter,
              active_task.empty()
                  ? text("")
@@ -110,7 +108,7 @@ Element timer_view(const Timer& timer, const Config& config,
                        size(WIDTH, LESS_THAN, 50) | hcenter,
              text(""),
              text("space start/pause · r reset · n skip") | dim | hcenter,
-             text("t tasks · s settings · ? help · q quit") | dim | hcenter,
+             text("t tasks · h history · s settings · ? help · q quit") | dim | hcenter,
          }) |
          center;
 }
@@ -126,6 +124,7 @@ Element help_view() {
              row("r", "reset current phase"),
              row("n", "skip to next phase"),
              row("t", "show / hide tasks"),
+             row("h", "history + streaks"),
              row("s", "settings"),
              row("?", "this help"),
              row("q", "quit"),
