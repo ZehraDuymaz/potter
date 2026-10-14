@@ -52,8 +52,12 @@ bool App::on_event(const Event& event) {
       if (settings_.done()) close_settings();
       return true;
 
-    case View::Help:
     case View::History:
+      history_screen_.handle(event);
+      if (history_screen_.done()) view_ = View::Timer;
+      return true;
+
+    case View::Help:
       if (event.is_character() || event == Event::Escape || event == Event::Return) {
         view_ = View::Timer;
         return true;
@@ -118,6 +122,7 @@ bool App::on_event(const Event& event) {
     settings_.open(config_);
     view_ = View::Settings;
   } else if (event == Event::Character('h')) {
+    history_screen_.open();
     view_ = View::History;
   } else if (event == Event::Character('?')) {
     view_ = View::Help;
@@ -153,7 +158,7 @@ Element App::render() {
       break;
     case View::Settings: body = settings_.render(); break;
     case View::Help: body = ui::help_view(); break;
-    case View::History: body = ui::history_view(history_, today(), config_); break;
+    case View::History: body = history_screen_.render(today()); break;
     case View::Music: body = music_screen_.render(accent); break;
   }
   if (status_.empty()) return body;
@@ -185,7 +190,11 @@ void App::collect_focus(Timer::Clock::time_point now) {
   const auto amount = focus_meter_.collect(timer_, now);
   if (amount <= amount.zero()) return;
   if (tasks_.active() != 0) tasks_.add_focus(tasks_.active(), amount);
-  if (history_.add_focus(today(), amount, config_.daily_goal_minutes)) on_goal_reached();
+  const Task* active = tasks_.find(tasks_.active());
+  if (history_.add_focus(today(), amount, config_.daily_goal_minutes, active ? active->id : 0,
+                         active ? active->title : "")) {
+    on_goal_reached();
+  }
 }
 
 void App::save_data(Timer::Clock::time_point now) {

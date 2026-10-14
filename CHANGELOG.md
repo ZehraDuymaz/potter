@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-14
+
+### Added
+- History remembers which task each focus minute went to, with the task's title, so time stays visible after a task is finished, renamed or deleted. Focus without an active task is listed as "no task".
+- History screen: `←`/`→` selects a day in the chart and shows its per-task breakdown.
+- History screen: a "Tasks" tab (`tab`) with focus totals per task for the last 7 days, 30 days or all time (`r`).
+
+### Changed
+- The history screen closes with `esc` or `q` (other keys now navigate it).
+- History screen layout matches the music screen (wider, padded).
+
 ## [0.4.0] - 2026-10-13
 
 ### Added

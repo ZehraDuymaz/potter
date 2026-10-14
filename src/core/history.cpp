@@ -31,12 +31,19 @@ std::string format_day(Day d) {
   return buf;
 }
 
-bool History::add_focus(Day d, nanoseconds amount, int goal_minutes) {
+bool History::add_focus(Day d, nanoseconds amount, int goal_minutes, TaskId task,
+                        const std::string& task_title) {
   if (amount <= amount.zero()) return false;
   DayStats& stats = days_[d];
   const bool was_met = stats.goal_met();
   stats.focus += amount;
   stats.goal_minutes = goal_minutes;
+
+  TaskTime& entry = stats.tasks[task];
+  entry.id = task;
+  if (!task_title.empty()) entry.title = task_title;  // keep up with renames
+  entry.focus += amount;
+
   dirty_ = true;
   return !was_met && stats.goal_met();
 }
@@ -87,6 +94,44 @@ int History::best_streak() const {
   return best;
 }
 
+namespace {
+
+std::vector<TaskTime> most_time_first(std::vector<TaskTime> list) {
+  std::stable_sort(list.begin(), list.end(),
+                   [](const TaskTime& a, const TaskTime& b) { return a.focus > b.focus; });
+  return list;
+}
+
+}  // namespace
+
+std::vector<TaskTime> History::task_breakdown(Day d) const {
+  std::vector<TaskTime> list;
+  const auto it = days_.find(d);
+  if (it == days_.end()) return list;
+  for (const auto& [id, entry] : it->second.tasks) list.push_back(entry);
+  return most_time_first(std::move(list));
+}
+
+std::vector<TaskTime> History::task_totals(Day first, Day last) const {
+  std::map<TaskId, TaskTime> totals;
+  for (auto it = days_.lower_bound(first); it != days_.end() && it->first <= last; ++it) {
+    for (const auto& [id, entry] : it->second.tasks) {
+      TaskTime& total = totals[id];
+      total.id = id;
+      if (!entry.title.empty()) total.title = entry.title;  // later days win
+      total.focus += entry.focus;
+    }
+  }
+  std::vector<TaskTime> list;
+  for (auto& [id, total] : totals) list.push_back(std::move(total));
+  return most_time_first(std::move(list));
+}
+
+std::optional<Day> History::first_day() const {
+  if (days_.empty()) return std::nullopt;
+  return days_.begin()->first;
+}
+
 bool History::load(const std::filesystem::path& path, std::string* error) {
   std::error_code ec;
   if (!std::filesystem::exists(path, ec)) return true;
@@ -113,7 +158,22 @@ bool History::load(const std::filesystem::path& path, std::string* error) {
       stats.focus = seconds(std::max<int64_t>(0, (*t)["focus_seconds"].value_or(int64_t{0})));
       stats.sessions = static_cast<int>((*t)["sessions"].value_or(int64_t{0}));
       stats.goal_minutes = static_cast<int>((*t)["goal_minutes"].value_or(int64_t{0}));
-      loaded[Day(ymd)] = stats;
+      if (const toml::array* tasks = (*t)["task"].as_array()) {
+        for (const toml::node& task_node : *tasks) {
+          const toml::table* tt = task_node.as_table();
+          if (!tt) continue;
+          TaskTime entry;
+          entry.id = static_cast<TaskId>(std::max<int64_t>(0, (*tt)["id"].value_or(int64_t{0})));
+          entry.title = (*tt)["title"].value_or(std::string());
+          entry.focus =
+              seconds(std::max<int64_t>(0, (*tt)["focus_seconds"].value_or(int64_t{0})));
+          TaskTime& slot = stats.tasks[entry.id];  // merge duplicates from hand edits
+          slot.id = entry.id;
+          if (!entry.title.empty()) slot.title = entry.title;
+          slot.focus += entry.focus;
+        }
+      }
+      loaded[Day(ymd)] = std::move(stats);
     }
   }
   days_ = std::move(loaded);
@@ -125,13 +185,25 @@ bool History::save(const std::filesystem::path& path, std::string* error) {
   toml::array list;
   for (const auto& [d, stats] : days_) {
     const year_month_day ymd(d);
-    list.push_back(toml::table{
+    toml::table day_table{
         {"date", toml::date{static_cast<int>(ymd.year()), static_cast<unsigned>(ymd.month()),
                             static_cast<unsigned>(ymd.day())}},
         {"focus_seconds", static_cast<int64_t>(duration_cast<seconds>(stats.focus).count())},
         {"sessions", stats.sessions},
         {"goal_minutes", stats.goal_minutes},
-    });
+    };
+    if (!stats.tasks.empty()) {
+      toml::array tasks;
+      for (const auto& [id, entry] : stats.tasks) {
+        tasks.push_back(toml::table{
+            {"id", static_cast<int64_t>(id)},
+            {"title", entry.title},
+            {"focus_seconds", static_cast<int64_t>(duration_cast<seconds>(entry.focus).count())},
+        });
+      }
+      day_table.insert("task", std::move(tasks));
+    }
+    list.push_back(std::move(day_table));
   }
   toml::table root{{"day", std::move(list)}};
 

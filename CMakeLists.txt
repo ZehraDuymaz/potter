@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(potter VERSION 0.4.0 LANGUAGES CXX)
+project(potter VERSION 0.5.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -68,6 +68,7 @@ add_executable(potter
   src/ui/task_view.cpp
   src/ui/history_view.cpp
   src/ui/music_view.cpp
+  src/ui/common.cpp
 )
 target_link_libraries(potter PRIVATE
   potter_core

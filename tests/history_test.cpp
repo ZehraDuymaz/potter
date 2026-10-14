@@ -129,7 +129,78 @@ static void saves_and_loads() {
   std::filesystem::remove_all(dir);
 }
 
+static void credits_focus_to_tasks() {
+  History h;
+  h.add_focus(kToday, 20min, 100, 1, "Study chapter 4");
+  h.add_focus(kToday, 10min, 100);  // no active task
+  h.add_focus(kToday, 25min, 100, 2, "Write report");
+  h.add_focus(kToday, 30min, 100, 1, "Study ch. 4 (renamed)");
+  CHECK(h.get(kToday).focus == 85min);  // the day total still adds up
+
+  const auto day = h.task_breakdown(kToday);
+  CHECK(day.size() == 3);
+  CHECK(day[0].id == 1);  // most time first
+  CHECK(day[0].focus == 50min);
+  CHECK(day[0].title == "Study ch. 4 (renamed)");  // keeps the latest title
+  CHECK(day[1].id == 2 && day[1].focus == 25min);
+  CHECK(day[2].id == 0 && day[2].focus == 10min);  // the "no task" bucket
+  CHECK(h.task_breakdown(kToday - days(1)).empty());
+}
+
+static void totals_cover_only_the_range() {
+  History h;
+  h.add_focus(kToday - days(40), 60min, 100, 7, "Old project");
+  h.add_focus(kToday - days(10), 30min, 100, 1, "Study");
+  h.add_focus(kToday - days(3), 15min, 100, 1, "Study");
+  h.add_focus(kToday, 45min, 100, 2, "Report");
+
+  const auto week = h.task_totals(kToday - days(6), kToday);
+  CHECK(week.size() == 2);
+  CHECK(week[0].id == 2 && week[0].focus == 45min);
+  CHECK(week[1].id == 1 && week[1].focus == 15min);
+
+  const auto month = h.task_totals(kToday - days(29), kToday);
+  CHECK(month.size() == 2);
+  CHECK(month[0].id == 1 && month[0].focus == 45min);  // 30 + 15
+
+  // "All time" still has the old project, even though that task is long gone.
+  const auto all = h.task_totals(*h.first_day(), kToday);
+  CHECK(all.size() == 3);
+  CHECK(all[0].id == 7 && all[0].title == "Old project" && all[0].focus == 60min);
+  CHECK(*h.first_day() == kToday - days(40));
+  CHECK(!History{}.first_day());
+}
+
+static void task_details_survive_save_and_load() {
+  const auto dir = std::filesystem::temp_directory_path() / "potter-history-tasks-test";
+  std::filesystem::remove_all(dir);
+  const auto path = dir / "history.toml";
+
+  History h;
+  h.add_focus(kToday, 25min, 100, 3, "Çalışma — ünite 3");
+  h.add_focus(kToday, 5min, 100);
+  CHECK(h.save(path));
+
+  History loaded;
+  CHECK(loaded.load(path));
+  const auto day = loaded.task_breakdown(kToday);
+  CHECK(day.size() == 2);
+  CHECK(day[0].id == 3 && day[0].title == "Çalışma — ünite 3" && day[0].focus == 25min);
+  CHECK(day[1].id == 0 && day[1].focus == 5min);
+
+  // Files from v0.3/v0.4 have no task details and still load fine.
+  std::ofstream(path) << "[[day]]\ndate = 2026-10-12\nfocus_seconds = 6000\nsessions = 4\n"
+                         "goal_minutes = 100\n";
+  CHECK(loaded.load(path));
+  CHECK(loaded.get(kToday - days(1)).goal_met());
+  CHECK(loaded.task_breakdown(kToday - days(1)).empty());
+  std::filesystem::remove_all(dir);
+}
+
 int main() {
+  credits_focus_to_tasks();
+  totals_cover_only_the_range();
+  task_details_survive_save_and_load();
   reaching_the_goal_is_reported_once();
   counts_sessions();
   streak_rules();

@@ -31,8 +31,49 @@ ftxui::Element timer_view(const Timer& timer, const Config& config,
 
 ftxui::Element help_view();
 
-// Vertical bar chart of the last two weeks, with the goal line and streaks.
-ftxui::Element history_view(const History& history, Day today, const Config& config);
+// Shared text and layout helpers (ui/common.cpp).
+inline constexpr int kPadX = 2;  // spaces inside a screen's border, left and right
+// Cuts `s` to at most `width` terminal columns, ending with "…" if cut.
+std::string fit(const std::string& s, int width);
+// Pads `s` on the left to `width` terminal columns.
+std::string pad_left(const std::string& s, int width);
+// A screen width that grows with the terminal, within limits.
+int screen_width(int min_width, int max_width);
+// Wraps a screen's content in padding and a rounded border, centered.
+ftxui::Element padded_box(ftxui::Element content, int width);
+
+// The history screen. "Days": a bar chart of the last two weeks; ←/→ picks a
+// day and shows where its focus went. "Tasks": focus totals per task over
+// 7 days, 30 days or all time — including finished and deleted tasks.
+class HistoryScreen {
+ public:
+  HistoryScreen(const History& history, const TaskList& tasks, const Config& config);
+
+  void open();
+  // Handles a key. Always consumes it, since the screen is modal.
+  bool handle(const ftxui::Event& event);
+  bool done() const { return done_; }
+  ftxui::Element render(Day today) const;
+
+ private:
+  enum class Tab { Days, Tasks };
+  enum class Range { Week, Month, All };
+
+  ftxui::Element render_chart(Day today) const;
+  ftxui::Element render_day(Day day, Day today, int inner) const;
+  ftxui::Element render_totals(Day today, int inner) const;
+  ftxui::Element task_row(const TaskTime& entry, int inner) const;
+
+  const History& history_;
+  const TaskList& tasks_;
+  const Config& config_;
+
+  Tab tab_ = Tab::Days;
+  Range range_ = Range::Week;
+  int day_offset_ = 0;  // 0 = today, 1 = yesterday, ...
+  int scroll_ = 0;      // selected row in the Tasks tab
+  bool done_ = false;
+};
 
 // The settings screen. It edits a draft copy of the config; the app reads
 // the draft back once the menu is closed.

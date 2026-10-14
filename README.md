@@ -4,7 +4,7 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that's much lighter than a browser tab.
 
-> Status: **v0.4** — timer, settings, tasks, daily goal, streaks and music work.
+> Status: **v0.5** — timer, settings, tasks, daily goal, streaks, music and per-task history work.
 
 ---
 
@@ -66,9 +66,15 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
 - Music stops when you quit potter.
 
+### v0.5: Task history ✅
+
+- Your history now remembers **which task** your focus went to — even after you finish, rename or delete the task.
+- In the history screen (`h`), `←`/`→` picks a day in the chart and shows where that day's focus went, task by task (plus "no task" time).
+- A second tab (`tab`) shows focus totals per task for the last 7 days, 30 days or all time (`r` to switch), with each task's status: active, open, done or deleted.
+- Days recorded before v0.5 keep their totals but have no per-task details.
+
 ### Later ideas
 
-- Detailed history, divided into tasks. Even tho you complete or delete a task you can see how much time you spent on it.
 - Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
 - Control from scripts or keybinds (`potter toggle`, `potter skip`) through a small local socket.
 - A compact mode for a tiny floating terminal window (Hyprland float rule), which works like picture-in-picture.
@@ -83,7 +89,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `n` | Skip to next phase |
 | `s` | Open settings |
 | `t` | Show / hide the task panel |
-| `h` | History + streaks |
+| `h` | History: days, task totals, streaks |
 | `m` | Music screen |
 | `p` | Play / pause music |
 | `+` / `-` | Music volume |
@@ -91,6 +97,8 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `q` | Quit |
 
 In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up.
+
+In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` scroll, `esc` close.
 
 In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
 

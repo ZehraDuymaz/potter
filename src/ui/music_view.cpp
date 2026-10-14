@@ -3,8 +3,6 @@
 #include <string>
 
 #include <ftxui/component/component.hpp>
-#include <ftxui/screen/string.hpp>
-#include <ftxui/screen/terminal.hpp>
 
 #include "system/player.hpp"
 #include "system/search.hpp"
@@ -19,43 +17,10 @@ namespace {
 // The screen grows with the window, within these limits.
 constexpr int kMinWidth = 60;
 constexpr int kMaxWidth = 120;
-constexpr int kPadX = 2;  // spaces inside the border, left and right
 // Columns of a search result row.
 constexpr int kChannelWidth = 24;
 constexpr int kLengthWidth = 8;
 constexpr int kGap = 3;
-
-int screen_width() { return std::clamp(Terminal::Size().dimx - 6, kMinWidth, kMaxWidth); }
-
-// Cuts `s` to at most `width` terminal columns, ending with "…" if cut.
-std::string fit(const std::string& s, int width) {
-  if (string_width(s) <= width) return s;
-  std::string out;
-  int used = 0;
-  for (const std::string& glyph : Utf8ToGlyphs(s)) {
-    const int w = string_width(glyph);
-    if (used + w > width - 1) break;
-    out += glyph;
-    used += w;
-  }
-  return out + "…";
-}
-
-std::string pad_left(const std::string& s, int width) {
-  const int w = string_width(s);
-  return w >= width ? s : std::string(width - w, ' ') + s;
-}
-
-// Wraps the screen's content in padding and a rounded border.
-Element frame_box(Element content, int width) {
-  const std::string pad(kPadX, ' ');
-  return vbox({
-             text(""),
-             hbox({text(pad), std::move(content) | flex, text(pad)}) | flex,
-             text(""),
-         }) |
-         size(WIDTH, EQUAL, width) | borderRounded | center;
-}
 
 std::string trim(const std::string& s) {
   const auto start = s.find_first_not_of(" \t");
@@ -216,7 +181,7 @@ bool MusicScreen::handle(const Event& event) {
 }
 
 Element MusicScreen::render(Color accent) const {
-  const int width = screen_width();
+  const int width = screen_width(kMinWidth, kMaxWidth);
   // Width available for text: minus the border and the padding.
   const int inner = width - 2 - 2 * kPadX;
 
@@ -233,7 +198,7 @@ Element MusicScreen::render(Color accent) const {
                separator(),
                text("press esc to close") | dim | hcenter,
            }) |
-           [&](Element e) { return frame_box(std::move(e), width); };
+           [&](Element e) { return padded_box(std::move(e), width); };
   }
 
   const PlayerState state = player_.state();
@@ -351,7 +316,7 @@ Element MusicScreen::render(Color accent) const {
       separator(),
       footer,
   });
-  return frame_box(std::move(content), width);
+  return padded_box(std::move(content), width);
 }
 
 }  // namespace potter::ui

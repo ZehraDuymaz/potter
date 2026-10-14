@@ -81,6 +81,7 @@ class App {
   ui::SettingsMenu settings_;
   ui::TaskPanel task_panel_{tasks_};
   ui::MusicScreen music_screen_{player_, search_, favorites_, config_};
+  ui::HistoryScreen history_screen_{history_, tasks_, config_};
   View view_ = View::Timer;
   std::string status_;
 };
