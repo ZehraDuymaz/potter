@@ -8,7 +8,7 @@ potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, strea
 
 ---
 
-<img width="1920" height="1171" alt="image" src="https://github.com/user-attachments/assets/37410d34-44f9-4b72-870a-7352bb2a3745" />
+<img width="1080" height="608" alt="pdemo" src="https://github.com/user-attachments/assets/4ab57e1b-470b-4d72-ae1f-28b340d274c1" />
 
 ---
 
