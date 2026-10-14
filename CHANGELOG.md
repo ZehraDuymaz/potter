@@ -5,6 +5,14 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-10-14
+
+### Added
+- Remove a task's time from the history: select it in the history's Tasks tab and press `dd` (asks first). Its time also comes off those days' totals, and days left empty are dropped — handy for cleaning up test runs.
+
+### Changed
+- The selected row in the history's Tasks tab is now highlighted.
+
 ## [0.5.0] - 2026-10-14
 
 ### Added

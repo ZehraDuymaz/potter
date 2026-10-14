@@ -132,6 +132,25 @@ std::optional<Day> History::first_day() const {
   return days_.begin()->first;
 }
 
+nanoseconds History::remove_task(TaskId task) {
+  nanoseconds removed{};
+  for (auto it = days_.begin(); it != days_.end();) {
+    DayStats& stats = it->second;
+    const auto entry = stats.tasks.find(task);
+    if (entry == stats.tasks.end()) {
+      ++it;
+      continue;
+    }
+    removed += entry->second.focus;
+    stats.focus = std::max(nanoseconds::zero(), stats.focus - entry->second.focus);
+    stats.tasks.erase(entry);
+    dirty_ = true;
+    // A day with no focus left has nothing worth keeping.
+    it = stats.focus > nanoseconds::zero() ? std::next(it) : days_.erase(it);
+  }
+  return removed;
+}
+
 bool History::load(const std::filesystem::path& path, std::string* error) {
   std::error_code ec;
   if (!std::filesystem::exists(path, ec)) return true;

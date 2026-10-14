@@ -71,6 +71,11 @@ class History {
   // The first day with any focus recorded, if there is one.
   std::optional<Day> first_day() const;
 
+  // Removes a task's focus from every day, including from the day totals
+  // (e.g. to clean up test runs). Days left with no focus are dropped.
+  // Returns how much time was removed.
+  std::chrono::nanoseconds remove_task(TaskId task);
+
   bool dirty() const { return dirty_; }
 
   // A missing file is an empty history, not an error.

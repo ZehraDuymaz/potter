@@ -65,7 +65,7 @@ std::string day_title(Day d) {
 
 }  // namespace
 
-HistoryScreen::HistoryScreen(const History& history, const TaskList& tasks, const Config& config)
+HistoryScreen::HistoryScreen(History& history, const TaskList& tasks, const Config& config)
     : history_(history), tasks_(tasks), config_(config) {}
 
 void HistoryScreen::open() {
@@ -73,9 +73,44 @@ void HistoryScreen::open() {
   tab_ = Tab::Days;
   day_offset_ = 0;
   scroll_ = 0;
+  pending_remove_.reset();
+  message_.clear();
 }
 
-bool HistoryScreen::handle(const Event& event) {
+std::vector<TaskTime> HistoryScreen::totals(Day today, std::string* range_label) const {
+  using namespace std::chrono;
+  Day first = today;
+  std::string label;
+  switch (range_) {
+    case Range::Week:
+      first = today - days(6);
+      label = "last 7 days";
+      break;
+    case Range::Month:
+      first = today - days(29);
+      label = "last 30 days";
+      break;
+    case Range::All:
+      first = history_.first_day().value_or(today);
+      label = "all time";
+      break;
+  }
+  if (range_label) *range_label = label;
+  return history_.task_totals(first, today);
+}
+
+std::string HistoryScreen::display_title(const TaskTime& entry) const {
+  if (entry.id == 0) return "no task";
+  if (const Task* task = tasks_.find(entry.id)) return task->title;
+  return entry.title.empty() ? "(untitled)" : entry.title;
+}
+
+bool HistoryScreen::handle(const Event& event, Day today) {
+  // A removal needs a second 'd'; any other key cancels it.
+  const std::optional<TaskId> confirm_remove = pending_remove_;
+  pending_remove_.reset();
+  message_.clear();
+
   if (event == Event::Escape || event == Event::Character('q')) {
     done_ = true;
   } else if (event == Event::Tab) {
@@ -96,6 +131,20 @@ bool HistoryScreen::handle(const Event& event) {
       ++scroll_;  // clamped when rendering
     } else if (event == Event::Character('k') || event == Event::ArrowUp) {
       scroll_ = std::max(scroll_ - 1, 0);
+    } else if (event == Event::Character('d')) {
+      const auto list = totals(today);
+      if (!list.empty()) {
+        scroll_ = std::min(scroll_, static_cast<int>(list.size()) - 1);
+        const TaskTime& entry = list[scroll_];
+        if (confirm_remove == entry.id) {
+          const auto removed = history_.remove_task(entry.id);
+          message_ = "removed \"" + display_title(entry) + "\" (" + format_amount(removed) +
+                     ") from your history";
+          scroll_ = std::max(0, std::min(scroll_, static_cast<int>(list.size()) - 2));
+        } else {
+          pending_remove_ = entry.id;
+        }
+      }
     }
   }
   return true;
@@ -104,14 +153,12 @@ bool HistoryScreen::handle(const Event& event) {
 Element HistoryScreen::task_row(const TaskTime& entry, int inner) const {
   // The live task list knows about renames and whether a task is done; a
   // task that's gone keeps the title saved in the history.
-  std::string title;
+  const std::string title = display_title(entry);
   std::string status;
   bool muted = false;
   if (entry.id == 0) {
-    title = "no task";
     muted = true;
   } else if (const Task* task = tasks_.find(entry.id)) {
-    title = task->title;
     if (task->done) {
       status = "done";
     } else if (tasks_.active() == task->id) {
@@ -120,7 +167,6 @@ Element HistoryScreen::task_row(const TaskTime& entry, int inner) const {
       status = "open";  // not finished, not being worked on right now
     }
   } else {
-    title = entry.title.empty() ? "(untitled)" : entry.title;
     status = "deleted";
     muted = true;
   }
@@ -241,25 +287,8 @@ Element HistoryScreen::render_day(Day day, Day today, int inner) const {
 }
 
 Element HistoryScreen::render_totals(Day today, int inner) const {
-  using namespace std::chrono;
-  Day first = today;
   std::string range_label;
-  switch (range_) {
-    case Range::Week:
-      first = today - days(6);
-      range_label = "last 7 days";
-      break;
-    case Range::Month:
-      first = today - days(29);
-      range_label = "last 30 days";
-      break;
-    case Range::All:
-      first = history_.first_day().value_or(today);
-      range_label = "all time";
-      break;
-  }
-
-  const auto totals = history_.task_totals(first, today);
+  const auto totals = this->totals(today, &range_label);
   std::chrono::nanoseconds sum{};
   for (const TaskTime& t : totals) sum += t.focus;
   const int selected = totals.empty() ? 0 : std::min(scroll_, static_cast<int>(totals.size()) - 1);
@@ -267,7 +296,7 @@ Element HistoryScreen::render_totals(Day today, int inner) const {
   Elements rows;
   for (int i = 0; i < static_cast<int>(totals.size()); ++i) {
     Element row = task_row(totals[i], inner);
-    if (i == selected) row = row | focus;  // keeps the selected row in view
+    if (i == selected) row = row | inverted | focus;  // focus keeps it in view
     rows.push_back(row);
   }
   if (rows.empty()) {
@@ -341,7 +370,30 @@ Element HistoryScreen::render(Day today) const {
     footer = text("←/→ pick a day · tab task totals · esc close") | dim;
   } else {
     body = render_totals(today, inner);
-    footer = text("j/k scroll · r change range · tab days · esc close") | dim;
+    if (pending_remove_) {
+      const auto list = totals(today);
+      const auto it = std::find_if(list.begin(), list.end(),
+                                   [&](const TaskTime& t) { return t.id == *pending_remove_; });
+      const std::string what =
+          it == list.end() ? "this task"
+                           : "\"" + display_title(*it) + "\" (" + format_amount(it->focus) + ")";
+      footer = vbox({
+          paragraph("remove " + what +
+                    " from your history? Its time also comes off those days' totals.") |
+              color(Color::Red),
+          text("press d again · any other key cancels") | dim,
+      });
+    } else if (!message_.empty()) {
+      footer = vbox({
+          text(message_) | color(phase_color(Phase::Focus, config_)),
+          text("j/k move · dd remove from history · r change range · tab days · esc close") |
+              dim,
+      });
+    } else {
+      footer =
+          text("j/k move · dd remove from history · r change range · tab days · esc close") |
+          dim;
+    }
   }
 
   return padded_box(vbox({

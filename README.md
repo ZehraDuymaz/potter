@@ -72,6 +72,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - In the history screen (`h`), `←`/`→` picks a day in the chart and shows where that day's focus went, task by task (plus "no task" time).
 - A second tab (`tab`) shows focus totals per task for the last 7 days, 30 days or all time (`r` to switch), with each task's status: active, open, done or deleted.
 - Days recorded before v0.5 keep their totals but have no per-task details.
+- Since v0.5.1: select a task in the totals tab and press `dd` to remove its time from your history — handy for test runs. Its time also comes off those days' totals.
 
 ### Later ideas
 
@@ -98,7 +99,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 
 In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up.
 
-In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` scroll, `esc` close.
+In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` move, `dd` remove a task's time from the history, `esc` close.
 
 In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
 

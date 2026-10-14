@@ -53,7 +53,8 @@ bool App::on_event(const Event& event) {
       return true;
 
     case View::History:
-      history_screen_.handle(event);
+      history_screen_.handle(event, today());
+      if (history_.dirty()) save_data(now);
       if (history_screen_.done()) view_ = View::Timer;
       return true;
 

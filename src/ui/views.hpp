@@ -1,6 +1,8 @@
 #pragma once
 
+#include <optional>
 #include <string>
+#include <vector>
 
 #include <ftxui/component/component_base.hpp>
 #include <ftxui/component/event.hpp>
@@ -44,14 +46,15 @@ ftxui::Element padded_box(ftxui::Element content, int width);
 
 // The history screen. "Days": a bar chart of the last two weeks; ←/→ picks a
 // day and shows where its focus went. "Tasks": focus totals per task over
-// 7 days, 30 days or all time — including finished and deleted tasks.
+// 7 days, 30 days or all time — including finished and deleted tasks — and
+// `dd` removes a task's time from the history (e.g. test runs).
 class HistoryScreen {
  public:
-  HistoryScreen(const History& history, const TaskList& tasks, const Config& config);
+  HistoryScreen(History& history, const TaskList& tasks, const Config& config);
 
   void open();
   // Handles a key. Always consumes it, since the screen is modal.
-  bool handle(const ftxui::Event& event);
+  bool handle(const ftxui::Event& event, Day today);
   bool done() const { return done_; }
   ftxui::Element render(Day today) const;
 
@@ -63,8 +66,12 @@ class HistoryScreen {
   ftxui::Element render_day(Day day, Day today, int inner) const;
   ftxui::Element render_totals(Day today, int inner) const;
   ftxui::Element task_row(const TaskTime& entry, int inner) const;
+  // Totals for the current range; `range_label` gets e.g. "last 7 days".
+  std::vector<TaskTime> totals(Day today, std::string* range_label = nullptr) const;
+  // The name to show for a history entry (current title if the task exists).
+  std::string display_title(const TaskTime& entry) const;
 
-  const History& history_;
+  History& history_;
   const TaskList& tasks_;
   const Config& config_;
 
@@ -72,6 +79,8 @@ class HistoryScreen {
   Range range_ = Range::Week;
   int day_offset_ = 0;  // 0 = today, 1 = yesterday, ...
   int scroll_ = 0;      // selected row in the Tasks tab
+  std::optional<TaskId> pending_remove_;  // waiting for the second 'd'
+  std::string message_;                   // e.g. "removed … from your history"
   bool done_ = false;
 };
 

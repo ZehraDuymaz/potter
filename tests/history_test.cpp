@@ -197,7 +197,36 @@ static void task_details_survive_save_and_load() {
   std::filesystem::remove_all(dir);
 }
 
+static void removes_a_task_everywhere() {
+  History h;
+  h.add_focus(kToday - days(2), 30min, 100, 9, "test run");  // only test focus that day
+  h.add_focus(kToday - days(1), 100min, 100, 1, "Study");
+  h.add_focus(kToday - days(1), 10min, 100, 9, "test run");
+  h.add_focus(kToday, 20min, 100, 9, "test run");
+  h.add_focus(kToday, 5min, 100);  // no task
+  CHECK(h.save(std::filesystem::temp_directory_path() / "potter-remove-test.toml"));
+  CHECK(!h.dirty());
+
+  CHECK(h.remove_task(9) == 60min);  // 30 + 10 + 20
+  CHECK(h.dirty());
+  // The day that only had test focus is gone completely.
+  CHECK(h.get(kToday - days(2)).focus == 0min);
+  CHECK(*h.first_day() == kToday - days(1));
+  // Other days lose just that task's time, from the total too.
+  CHECK(h.get(kToday - days(1)).focus == 100min);
+  CHECK(h.get(kToday - days(1)).goal_met());
+  CHECK(h.task_breakdown(kToday - days(1)).size() == 1);
+  CHECK(h.get(kToday).focus == 5min);
+  CHECK(h.task_totals(kToday - days(6), kToday).size() == 2);  // Study + no task
+
+  CHECK(h.remove_task(0) == 5min);  // the "no task" bucket can go too
+  CHECK(h.get(kToday).focus == 0min);
+  CHECK(h.remove_task(42) == 0min);  // unknown task: nothing happens
+  std::filesystem::remove(std::filesystem::temp_directory_path() / "potter-remove-test.toml");
+}
+
 int main() {
+  removes_a_task_everywhere();
   credits_focus_to_tasks();
   totals_cover_only_the_range();
   task_details_survive_save_and_load();
