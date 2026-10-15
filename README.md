@@ -65,6 +65,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
 - Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
 - Music stops when you quit potter.
+- potter's mpv doesn't read your own mpv config (`~/.config/mpv`), so settings meant for videos can't break music. To configure it, write an `mpv.conf` in `~/.config/potter/mpv/` (same format as mpv's). Add `include=~/.config/mpv/mpv.conf` there to reuse your own config.
 
 ### v0.5: Task history ✅
 

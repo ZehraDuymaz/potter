@@ -81,7 +81,14 @@ bool MpvPlayer::ensure_started() {
   std::vector<std::string> args = {
       "mpv",
       "--idle=yes",
+      // potter's own config folder instead of ~/.config/mpv, so settings meant
+      // for watching videos (`no-audio` for a wallpaper, `loop-file`, ...)
+      // don't break music.
+      "--config-dir=" + mpv_config_dir().string(),
       "--no-video",
+      // Command-line options beat mpv.conf, so audio stays on even if that
+      // folder's mpv.conf includes one with `no-audio`.
+      "--aid=auto",
       "--no-terminal",
       "--force-window=no",
       "--ytdl-format=bestaudio/best",

@@ -86,4 +86,8 @@ class Favorites {
 // $XDG_DATA_HOME/potter/favorites.toml, or ~/.local/share/potter/favorites.toml.
 std::filesystem::path favorites_path();
 
+// The config folder potter's mpv uses instead of ~/.config/mpv:
+// $XDG_CONFIG_HOME/potter/mpv, or ~/.config/potter/mpv.
+std::filesystem::path mpv_config_dir();
+
 }  // namespace potter
