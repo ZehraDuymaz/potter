@@ -5,6 +5,18 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-10-15
+
+### Changed
+- Release binaries are now fully static (built with musl in Alpine Linux), so they run on any 64-bit Linux distro, old or new — before, they needed a recent glibc.
+- Releases now include an ARM64 (aarch64) build next to x86_64.
+- Release files have fixed names (`potter-linux-x86_64.tar.gz`, `potter-linux-aarch64.tar.gz`), so `releases/latest/download/...` always points at the newest version; the README has a one-line install.
+- CI also builds the static binary on x86_64 and ARM64 on every push.
+
+### Added
+- `packaging/build-static.sh`: the static build, runnable locally with Docker.
+- README: troubleshooting for mpv configs and outdated yt-dlp.
+
 ## [0.5.1] - 2026-10-14
 
 ### Added

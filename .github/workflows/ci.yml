@@ -29,3 +29,21 @@ jobs:
 
       - name: Check --version
         run: ./build/potter --version
+
+  # The same static (musl) build the release uses, so a problem shows up on
+  # a normal push instead of on release day.
+  static:
+    strategy:
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Build a static binary in Alpine (musl) and run the tests
+        run: |
+          docker run --rm -v "$PWD":/src -w /src \
+            -e HOST_UID="$(id -u)" -e HOST_GID="$(id -g)" \
+            alpine:3.21 sh packaging/build-static.sh

@@ -150,6 +150,8 @@ potter/
 │   ├── tasks_test.cpp
 │   ├── history_test.cpp
 │   └── music_test.cpp
+├── packaging/
+│   └── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
 └── docs/
 ```
 
@@ -177,13 +179,18 @@ sudo apt install build-essential cmake libnotify-bin mpv yt-dlp
 
 ## Install from a release
 
-Download the latest `potter-vX.Y.Z-linux-x86_64.tar.gz` from the [Releases page](https://github.com/ZehraDuymaz/potter/releases), then:
+The release binaries are **fully static**: one file that runs on any 64-bit Linux distro — Arch, Debian, Ubuntu, Fedora, openSUSE, old or new — for both **x86_64** and **ARM64** (e.g. Raspberry Pi), with nothing else to install.
 
 ```sh
-tar -xzf potter-*-linux-x86_64.tar.gz
-install -Dm755 potter-*-linux-x86_64/potter ~/.local/bin/potter
+# downloads the newest release for your CPU (x86_64 or aarch64)
+curl -L "https://github.com/ZehraDuymaz/potter/releases/latest/download/potter-linux-$(uname -m).tar.gz" | tar -xz
+install -Dm755 "potter-linux-$(uname -m)/potter" ~/.local/bin/potter
 potter --version
 ```
+
+Make sure `~/.local/bin` is on your `PATH`. To update, run the same commands again. Music still needs `mpv` (and `yt-dlp` for YouTube) from your distro's packages.
+
+You can also download the files by hand from the [Releases page](https://github.com/ZehraDuymaz/potter/releases); each one comes with a `.sha256` checksum.
 
 ## Build and run
 
