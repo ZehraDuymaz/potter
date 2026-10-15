@@ -5,6 +5,15 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-10-15
+
+### Fixed
+- Music failing with "couldn't play this: no audio or video data played" when your mpv config turns audio off (e.g. `no-audio` for a video wallpaper).
+
+### Changed
+- potter's mpv no longer reads `~/.config/mpv`; it uses `~/.config/potter/mpv` instead. To keep using your mpv settings in potter, put `include=~/.config/mpv/mpv.conf` in `~/.config/potter/mpv/mpv.conf`. `mpv_args` in config.toml works as before.
+- README: the music troubleshooting section now describes potter's own mpv config folder.
+
 ## [0.5.2] - 2026-10-15
 
 ### Changed

@@ -196,4 +196,8 @@ std::filesystem::path favorites_path() {
   return xdg_dir("XDG_DATA_HOME", ".local/share") / "potter" / "favorites.toml";
 }
 
+std::filesystem::path mpv_config_dir() {
+  return xdg_dir("XDG_CONFIG_HOME", ".config") / "potter" / "mpv";
+}
+
 }  // namespace potter

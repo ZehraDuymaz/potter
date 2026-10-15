@@ -65,6 +65,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
 - Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
 - Music stops when you quit potter.
+- potter's mpv doesn't read your own mpv config (`~/.config/mpv`), so settings meant for videos can't break music. To configure it, write an `mpv.conf` in `~/.config/potter/mpv/` (same format as mpv's). Add `include=~/.config/mpv/mpv.conf` there to reuse your own config.
 
 ### v0.5: Task history ✅
 
@@ -216,18 +217,9 @@ Built with the help of Claude Code. I designed the features, tested and released
 
 ### Music doesn't play (or plays silently)
 
-potter plays music through **your own mpv**, so your mpv config (`~/.config/mpv/mpv.conf` and `~/.config/mpv/scripts/`) also applies inside potter. potter overrides only what it needs (background mode, no video, its control socket, audio-only YouTube and the volume) — everything else in your config still counts.
+potter's mpv doesn't read your own mpv config (`~/.config/mpv`), only `~/.config/potter/mpv/`, so your video settings can't get in the way. If you added `include=~/.config/mpv/mpv.conf` there, try removing it first.
 
-**1. Check whether it's your config.** Try both commands in a normal terminal:
-
-```sh
-mpv --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"               # with your config
-mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"   # without it
-```
-
-If the second one plays and the first doesn't, something in your mpv config is the cause.
-
-**2. Common culprits in `mpv.conf`:**
+**Common culprits in an mpv.conf:**
 
 | Setting | What happens in potter |
 | --- | --- |
@@ -235,16 +227,16 @@ If the second one plays and the first doesn't, something in your mpv config is t
 | `ytdl=no` | YouTube links and search results don't play |
 | `script-opts=ytdl_hook-ytdl_path=youtube-dl` | YouTube fails if it points to the old `youtube-dl` — point it to `yt-dlp` or remove it |
 | `audio-device=...` | no sound if that device isn't connected |
-| scripts in `~/.config/mpv/scripts/` | some scripts expect a video window or a terminal and can get in the way |
 
-**3. Or let potter ignore your mpv config.** Add this to `~/.config/potter/config.toml` — your mpv config stays untouched for everything else:
+`no-audio` can't break it: potter always turns audio back on.
 
-```toml
-[music]
-mpv_args = "--no-config"
+**Check mpv itself.** If this doesn't play in a normal terminal either, the problem is mpv or yt-dlp, not potter:
+
+```sh
+mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"
 ```
 
-`mpv_args` takes any mpv options, e.g. `"--no-config --audio-device=auto"`. Run `mpv --audio-device=help` to list your devices.
+Extra mpv options go in `~/.config/potter/config.toml`, e.g. `mpv_args = "--audio-device=auto"` under `[music]`. Run `mpv --audio-device=help` to list your devices.
 
 ### YouTube search shows "search failed"
 
