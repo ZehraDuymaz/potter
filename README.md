@@ -205,6 +205,44 @@ The first configure downloads FTXUI (and toml++ if it isn't installed), so it ne
 
 Built with the help of Claude Code. I designed the features, tested and released it, and I'm learning C++ through it.
 
+## Troubleshooting
+
+### Music doesn't play (or plays silently)
+
+potter plays music through **your own mpv**, so your mpv config (`~/.config/mpv/mpv.conf` and `~/.config/mpv/scripts/`) also applies inside potter. potter overrides only what it needs (background mode, no video, its control socket, audio-only YouTube and the volume) — everything else in your config still counts.
+
+**1. Check whether it's your config.** Try both commands in a normal terminal:
+
+```sh
+mpv --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"               # with your config
+mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"   # without it
+```
+
+If the second one plays and the first doesn't, something in your mpv config is the cause.
+
+**2. Common culprits in `mpv.conf`:**
+
+| Setting | What happens in potter |
+| --- | --- |
+| `mute=yes` | everything plays, but silently |
+| `ytdl=no` | YouTube links and search results don't play |
+| `script-opts=ytdl_hook-ytdl_path=youtube-dl` | YouTube fails if it points to the old `youtube-dl` — point it to `yt-dlp` or remove it |
+| `audio-device=...` | no sound if that device isn't connected |
+| scripts in `~/.config/mpv/scripts/` | some scripts expect a video window or a terminal and can get in the way |
+
+**3. Or let potter ignore your mpv config.** Add this to `~/.config/potter/config.toml` — your mpv config stays untouched for everything else:
+
+```toml
+[music]
+mpv_args = "--no-config"
+```
+
+`mpv_args` takes any mpv options, e.g. `"--no-config --audio-device=auto"`. Run `mpv --audio-device=help` to list your devices.
+
+### YouTube search shows "search failed"
+
+YouTube changes often, and an old `yt-dlp` stops working. Update it (`sudo pacman -Syu yt-dlp`, `brew upgrade yt-dlp`, or `yt-dlp -U` if you installed it yourself).
+
 ## License
 
 potter is free software, licensed under the [GNU General Public License v3.0 or later](LICENSE).
