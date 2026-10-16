@@ -1,6 +1,6 @@
 pkgbase = potter-bin
 	pkgdesc = Lightweight terminal Pomodoro timer with tasks, focus history and music (static release binary)
-	pkgver = 0.5.3
+	pkgver = 0.5.4
 	pkgrel = 1
 	url = https://github.com/ZehraDuymaz/potter
 	arch = x86_64
@@ -9,13 +9,13 @@ pkgbase = potter-bin
 	optdepends = mpv: music
 	optdepends = yt-dlp: YouTube search and links
 	optdepends = libnotify: desktop notifications
-	provides = potter=0.5.3
+	provides = potter=0.5.4
 	conflicts = potter
 	options = !strip
 	options = !debug
-	source_x86_64 = potter-0.5.3-x86_64.tar.gz::https://github.com/ZehraDuymaz/potter/releases/download/v0.5.3/potter-linux-x86_64.tar.gz
-	sha256sums_x86_64 = 199c327bfc1c70395edb0c4f07dd1e4090b5500627377a2f00b11f6db5ed0624
-	source_aarch64 = potter-0.5.3-aarch64.tar.gz::https://github.com/ZehraDuymaz/potter/releases/download/v0.5.3/potter-linux-aarch64.tar.gz
-	sha256sums_aarch64 = 9cf62f97767840695c41381dc209f8ba128a7500a4f96fab33f9c5622d5cc68a
+	source_x86_64 = potter-0.5.4-x86_64.tar.gz::https://github.com/ZehraDuymaz/potter/releases/download/v0.5.4/potter-linux-x86_64.tar.gz
+	sha256sums_x86_64 = c30d3c167b33244c63c21b23b5652317e44cbafc9d38c7941a3071ecd14ec13a
+	source_aarch64 = potter-0.5.4-aarch64.tar.gz::https://github.com/ZehraDuymaz/potter/releases/download/v0.5.4/potter-linux-aarch64.tar.gz
+	sha256sums_aarch64 = c9fec7da92e30552196210843e99742541b7a49151a3745e9b10ed532f701f46
 
 pkgname = potter-bin

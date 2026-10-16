@@ -5,6 +5,9 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+### Fixed
+- macOS: a broken config or data file could crash potter when it was built against Homebrew's toml++. potter now always compiles toml++ in on macOS.
+
 ## [0.5.4] - 2026-10-16
 
 ### Added

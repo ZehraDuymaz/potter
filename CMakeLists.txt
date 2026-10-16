@@ -24,7 +24,11 @@ set(FTXUI_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(ftxui)
 
 # toml++ (config file): use the system package if present, otherwise download it.
-find_package(tomlplusplus 3 QUIET)
+# Not on macOS: Homebrew's toml++ is a shared library whose parse errors can't
+# be caught across that boundary there, so a broken file would crash potter.
+if(NOT APPLE)
+  find_package(tomlplusplus 3 QUIET)
+endif()
 if(NOT tomlplusplus_FOUND)
   FetchContent_Declare(tomlplusplus
     URL https://github.com/marzer/tomlplusplus/archive/refs/tags/v3.4.0.tar.gz

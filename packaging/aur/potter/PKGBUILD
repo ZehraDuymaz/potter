@@ -1,6 +1,6 @@
 # Maintainer: Zehra Duymaz
 pkgname=potter
-pkgver=0.5.3
+pkgver=0.5.4
 pkgrel=1
 _ftxuiver=6.1.9
 pkgdesc="Lightweight terminal Pomodoro timer with tasks, focus history and music"
@@ -15,7 +15,7 @@ optdepends=('mpv: music'
 # FTXUI isn't packaged for Arch, so it's downloaded here instead of by CMake.
 source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
         "ftxui-$_ftxuiver.tar.gz::https://github.com/ArthurSonzogni/FTXUI/archive/refs/tags/v$_ftxuiver.tar.gz")
-sha256sums=('62a49cee7a1aa947e39b2a52e6a84e4bdf062e294850e7807fc17e4236967141'
+sha256sums=('07986091ae99f2180640eadb4171d391d76841e902ced9cd504dc5829e93ed49'
             '45819c1e54914783d4a1ca5633885035d74146778a1f74e1213cdb7b76340e71')
 
 build() {
