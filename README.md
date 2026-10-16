@@ -211,6 +211,10 @@ Make sure `~/.local/bin` is on your `PATH`. To update, run the same commands aga
 
 You can also download the files by hand from the [Releases page](https://github.com/ZehraDuymaz/potter/releases); each one comes with a `.sha256` checksum.
 
+### Windows (WSL)
+
+potter doesn't run natively on Windows yet, but it works in [WSL](https://learn.microsoft.com/windows/wsl/install) (Windows Subsystem for Linux). Open your WSL terminal (e.g. Ubuntu) and run the "Any Linux" install commands above. For music, install `mpv` and `yt-dlp` inside WSL; sound works out of the box on Windows 11.
+
 ## Build and run
 
 ```sh
