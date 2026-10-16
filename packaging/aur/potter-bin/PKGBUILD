@@ -1,0 +1,26 @@
+# Maintainer: Zehra Duymaz
+pkgname=potter-bin
+_pkgname=potter
+pkgver=0.5.3
+pkgrel=1
+pkgdesc="Lightweight terminal Pomodoro timer with tasks, focus history and music (static release binary)"
+arch=('x86_64' 'aarch64')
+url="https://github.com/ZehraDuymaz/potter"
+license=('GPL-3.0-or-later')
+provides=("$_pkgname=$pkgver")
+conflicts=("$_pkgname")
+optdepends=('mpv: music'
+            'yt-dlp: YouTube search and links'
+            'libnotify: desktop notifications')
+options=('!strip' '!debug')
+source_x86_64=("$_pkgname-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-linux-x86_64.tar.gz")
+source_aarch64=("$_pkgname-$pkgver-aarch64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-linux-aarch64.tar.gz")
+sha256sums_x86_64=('199c327bfc1c70395edb0c4f07dd1e4090b5500627377a2f00b11f6db5ed0624')
+sha256sums_aarch64=('9cf62f97767840695c41381dc209f8ba128a7500a4f96fab33f9c5622d5cc68a')
+
+package() {
+  cd "$_pkgname-linux-$CARCH"
+  install -Dm755 potter "$pkgdir/usr/bin/potter"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$_pkgname/README.md"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

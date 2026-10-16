@@ -1,0 +1,36 @@
+# Maintainer: Zehra Duymaz
+pkgname=potter
+pkgver=0.5.3
+pkgrel=1
+_ftxuiver=6.1.9
+pkgdesc="Lightweight terminal Pomodoro timer with tasks, focus history and music"
+arch=('x86_64' 'aarch64')
+url="https://github.com/ZehraDuymaz/potter"
+license=('GPL-3.0-or-later')
+depends=('gcc-libs' 'glibc' 'tomlplusplus')
+makedepends=('cmake' 'nlohmann-json')
+optdepends=('mpv: music'
+            'yt-dlp: YouTube search and links'
+            'libnotify: desktop notifications')
+# FTXUI isn't packaged for Arch, so it's downloaded here instead of by CMake.
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz"
+        "ftxui-$_ftxuiver.tar.gz::https://github.com/ArthurSonzogni/FTXUI/archive/refs/tags/v$_ftxuiver.tar.gz")
+sha256sums=('62a49cee7a1aa947e39b2a52e6a84e4bdf062e294850e7807fc17e4236967141'
+            '45819c1e54914783d4a1ca5633885035d74146778a1f74e1213cdb7b76340e71')
+
+build() {
+  cmake -S "$pkgname-$pkgver" -B build \
+    -DCMAKE_BUILD_TYPE=None \
+    -DCMAKE_INSTALL_PREFIX=/usr \
+    -DFETCHCONTENT_SOURCE_DIR_FTXUI="$srcdir/FTXUI-$_ftxuiver"
+  cmake --build build
+}
+
+check() {
+  ctest --test-dir build --output-on-failure
+}
+
+package() {
+  DESTDIR="$pkgdir" cmake --install build
+  install -Dm644 "$pkgname-$pkgver/README.md" "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

@@ -1,0 +1,22 @@
+pkgbase = potter
+	pkgdesc = Lightweight terminal Pomodoro timer with tasks, focus history and music
+	pkgver = 0.5.3
+	pkgrel = 1
+	url = https://github.com/ZehraDuymaz/potter
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	makedepends = cmake
+	makedepends = nlohmann-json
+	depends = gcc-libs
+	depends = glibc
+	depends = tomlplusplus
+	optdepends = mpv: music
+	optdepends = yt-dlp: YouTube search and links
+	optdepends = libnotify: desktop notifications
+	source = potter-0.5.3.tar.gz::https://github.com/ZehraDuymaz/potter/archive/refs/tags/v0.5.3.tar.gz
+	source = ftxui-6.1.9.tar.gz::https://github.com/ArthurSonzogni/FTXUI/archive/refs/tags/v6.1.9.tar.gz
+	sha256sums = 62a49cee7a1aa947e39b2a52e6a84e4bdf062e294850e7807fc17e4236967141
+	sha256sums = 45819c1e54914783d4a1ca5633885035d74146778a1f74e1213cdb7b76340e71
+
+pkgname = potter

@@ -30,6 +30,26 @@ jobs:
       - name: Check --version
         run: ./build/potter --version
 
+  # macOS (Apple Silicon), for the Homebrew formula.
+  macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check --version
+        run: ./build/potter --version
+
   # The same static (musl) build the release uses, so a problem shows up on
   # a normal push instead of on release day.
   static:

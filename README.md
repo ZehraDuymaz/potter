@@ -152,7 +152,10 @@ potter/
 │   ├── history_test.cpp
 │   └── music_test.cpp
 ├── packaging/
-│   └── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
+│   ├── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
+│   ├── update-packages.sh     # points AUR + Homebrew at a new release
+│   └── aur/                   # PKGBUILDs: potter (from source), potter-bin
+├── RELEASING.md               # release checklist
 └── docs/
 ```
 
@@ -160,7 +163,7 @@ Everything in `core/` is free of UI and system code, so the logic can be tested 
 
 ## Requirements
 
-- Linux
+- Linux or macOS
 - A C++20 compiler (GCC 11+ or Clang 14+) and CMake 3.20+
 - Internet access for the first build (CMake downloads FTXUI, and toml++ / nlohmann-json if they aren't installed)
 - Optional: `notify-send` (libnotify) for desktop notifications
@@ -178,7 +181,22 @@ On Debian / Ubuntu:
 sudo apt install build-essential cmake libnotify-bin mpv yt-dlp
 ```
 
-## Install from a release
+## Install
+
+### macOS (or Linux) with Homebrew
+
+```sh
+brew install zehraduymaz/tap/potter
+brew install mpv yt-dlp   # optional, for music
+```
+
+Update with `brew upgrade potter`. On macOS, notifications use the system's own (no `notify-send` needed).
+
+### Arch Linux (AUR)
+
+Coming soon as `potter` (builds from source) and `potter-bin` (the static release binary) — AUR sign-ups are closed for now.
+
+### Any Linux: download a release
 
 The release binaries are **fully static**: one file that runs on any 64-bit Linux distro — Arch, Debian, Ubuntu, Fedora, openSUSE, old or new — for both **x86_64** and **ARM64** (e.g. Raspberry Pi), with nothing else to install.
 

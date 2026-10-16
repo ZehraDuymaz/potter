@@ -5,6 +5,15 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-10-16
+
+### Added
+- Homebrew formula (macOS and Linux) in the tap `zehraduymaz/tap`: `brew install zehraduymaz/tap/potter`.
+- AUR packages, ready to submit: `packaging/aur/potter` (builds from source) and `packaging/aur/potter-bin` (static release binary).
+- Desktop notifications on macOS (through `osascript`, since there's no `notify-send`).
+- CI builds and tests on macOS too.
+- `RELEASING.md` (release checklist) and `packaging/update-packages.sh`, which points the AUR and Homebrew packages at a new release.
+
 ## [0.5.3] - 2026-10-15
 
 ### Fixed
