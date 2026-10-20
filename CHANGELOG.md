@@ -5,6 +5,8 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-20
+
 ### Added
 - Seeking in music: `←`/`→` jump 10 seconds back/forward, `0`–`9` jump to 0%–90% of the track, on the timer screen and in the music screen ([#3](https://github.com/ZehraDuymaz/potter/issues/3)).
 - potter remembers where you left off in each track (saved to `~/.local/share/potter/positions.toml`). Playing it again offers `press r to resume` in the music screen. YouTube links count as the same track whatever their form (`youtu.be/…`, `youtube.com/watch?v=…`).
