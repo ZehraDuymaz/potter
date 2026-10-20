@@ -92,6 +92,16 @@ bool MpvPlayer::ensure_started() {
       "--no-terminal",
       "--force-window=no",
       "--ytdl-format=bestaudio/best",
+      // YouTube sends one long download barely faster than it plays, so
+      // jumping ahead meant waiting for a new download. Asking in 1 MiB
+      // pieces gets full speed, so mpv buffers far ahead and jumps are
+      // instant. (Ignored by ffmpeg older than 7.1.)
+      "--stream-lavf-o=request_size=1048576",
+      // With fast downloads mpv would fill its whole 150 MiB buffer. A
+      // small one is enough now (about 8 minutes of audio ahead, 4 behind),
+      // since a fresh download is quick, and keeps the RAM low.
+      "--demuxer-max-bytes=8MiB",
+      "--demuxer-max-back-bytes=4MiB",
       "--input-ipc-server=" + socket_path_,
       "--volume=" + std::to_string(volume_),
   };
@@ -163,7 +173,13 @@ void MpvPlayer::io_loop(std::stop_token stop) {
         apply_mpv_message(state_, std::string_view(pending).substr(0, nl));
         pending.erase(0, nl + 1);
       }
-      if (state_.files_loaded != loaded_at_request_ || !state_.error.empty()) requested_ = false;
+      if (state_.files_loaded != loaded_at_request_ || !state_.error.empty()) {
+        if (requested_ && pending_seek_ && state_.error.empty()) {
+          outbox_.push_back(seek_command(pending_seek_->amount, pending_seek_->mode));
+        }
+        requested_ = false;
+        pending_seek_.reset();
+      }
     }
   }
 
@@ -173,12 +189,20 @@ void MpvPlayer::io_loop(std::stop_token stop) {
   state_.idle = true;
 }
 
-void MpvPlayer::send(const std::vector<std::string>& command) {
+std::string MpvPlayer::command_line(const std::vector<std::string>& command) {
   nlohmann::json args = nlohmann::json::array();
   for (const std::string& part : command) args.push_back(part);
+  return nlohmann::json{{"command", args}}.dump() + "\n";
+}
+
+std::string MpvPlayer::seek_command(double amount, const char* mode) {
+  return command_line({"seek", std::to_string(amount), mode});
+}
+
+void MpvPlayer::send(const std::vector<std::string>& command) {
   {
     std::lock_guard lock(mutex_);
-    outbox_.push_back(nlohmann::json{{"command", args}}.dump() + "\n");
+    outbox_.push_back(command_line(command));
   }
   if (wake_[1] >= 0) {
     const char byte = 1;
@@ -197,6 +221,7 @@ bool MpvPlayer::play(const std::string& target, const std::string& title) {
     title_hint_ = title;
     requested_ = true;
     loaded_at_request_ = state_.files_loaded;
+    pending_seek_.reset();
     state_.error.clear();
   }
   send({"loadfile", target, "replace"});
@@ -211,6 +236,27 @@ void MpvPlayer::toggle_pause() {
 
 void MpvPlayer::set_pause(bool paused) {
   if (state().has_media()) send({"set_property", "pause", paused ? "yes" : "no"});
+}
+
+void MpvPlayer::seek_by(double seconds) { seek(seconds, "relative"); }
+
+void MpvPlayer::seek_percent(int percent) {
+  seek(std::clamp(percent, 0, 100), "absolute-percent");
+}
+
+void MpvPlayer::seek_to(double seconds) { seek(seconds, "absolute"); }
+
+void MpvPlayer::seek(double amount, const char* mode) {
+  {
+    std::lock_guard lock(mutex_);
+    // Still loading: remember the newest jump and make it once loaded.
+    if (requested_ && state_.error.empty()) {
+      pending_seek_ = PendingSeek{amount, mode};
+      return;
+    }
+    if (!state_.has_media()) return;
+  }
+  send({"seek", std::to_string(amount), mode});
 }
 
 int MpvPlayer::change_volume(int delta) {
@@ -251,6 +297,7 @@ void MpvPlayer::stop() {
   state_ = PlayerState{};
   title_hint_.clear();
   requested_ = false;
+  pending_seek_.reset();
   outbox_.clear();
 }
 

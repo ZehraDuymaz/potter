@@ -31,8 +31,12 @@ std::string trim(const std::string& s) {
 }  // namespace
 
 MusicScreen::MusicScreen(MpvPlayer& player, YouTubeSearch& search, Favorites& favorites,
-                         const Config& config)
-    : player_(player), search_(search), favorites_(favorites), config_(config) {
+                         const ResumePoints& resume_points, const Config& config)
+    : player_(player),
+      search_(search),
+      favorites_(favorites),
+      resume_points_(resume_points),
+      config_(config) {
   InputOption option;
   option.multiline = false;
   option.cursor_position = &cursor_;
@@ -70,12 +74,31 @@ void MusicScreen::play_item(const Item& item) {
   if (item.is_result) {
     const auto results = search_.status().results;
     if (item.index < results.size()) {
-      player_.play(results[item.index].url(), results[item.index].title);
+      play(results[item.index].url(), results[item.index].title);
     }
   } else if (item.index < favorites_.list().size()) {
     const Favorite& f = favorites_.list()[item.index];
-    player_.play(f.target, f.title);
+    play(f.target, f.title);
   }
+}
+
+void MusicScreen::play(const std::string& target, const std::string& title) {
+  const std::optional<int> resume = resume_points_.get(target);
+  player_.play(target, title);
+  offer_target_ = resume ? target : "";
+  offer_seconds_ = resume.value_or(0);
+}
+
+std::optional<int> MusicScreen::resume_offer() const {
+  if (offer_target_.empty()) return std::nullopt;
+  // Only while that track is the one loading or playing.
+  if (!player_.loading()) {
+    const PlayerState state = player_.state();
+    if (!state.has_media() || track_key(state.path) != track_key(offer_target_)) {
+      return std::nullopt;
+    }
+  }
+  return offer_seconds_;
 }
 
 void MusicScreen::submit() {
@@ -93,7 +116,7 @@ void MusicScreen::submit() {
       selected_ = 0;
       break;
     case InputKind::Url:
-      player_.play(input, input);
+      play(input, input);
       break;
     case InputKind::File: {
       const std::string path = expand_home(input);
@@ -102,7 +125,7 @@ void MusicScreen::submit() {
         message_ = "not found: " + path;
         return;
       }
-      player_.play(path, std::filesystem::path(path).filename().string());
+      play(path, std::filesystem::path(path).filename().string());
       break;
     }
   }
@@ -156,6 +179,19 @@ bool MusicScreen::handle(const Event& event) {
     if (!list.empty()) play_item(list[selected_]);
   } else if (event == Event::Character('p') || event == Event::Character(' ')) {
     player_.toggle_pause();
+  } else if (event == Event::ArrowLeft) {
+    player_.seek_by(-10);
+  } else if (event == Event::ArrowRight) {
+    player_.seek_by(10);
+  } else if (event.is_character() && event.character().size() == 1 &&
+             event.character()[0] >= '0' && event.character()[0] <= '9') {
+    player_.seek_percent((event.character()[0] - '0') * 10);
+  } else if (event == Event::Character('r')) {
+    if (const auto at = resume_offer()) {
+      player_.seek_to(*at);
+      message_ = "resumed at " + format_clock(*at);
+    }
+    offer_target_.clear();
   } else if (event == Event::Character('+') || event == Event::Character('=')) {
     player_.change_volume(+5);
   } else if (event == Event::Character('-')) {
@@ -209,7 +245,8 @@ Element MusicScreen::render(Color accent) const {
   if (state.has_media()) {
     const bool favorite = favorites_.contains(state.path);
     now.push_back(hbox({
-        text(state.paused ? "⏸  " : "▶  ") | color(accent),
+        // Like a play button: what pressing p would do.
+        text(state.paused ? "▶  " : "⏸  ") | color(accent),
         paragraph(player_.display_title()) | bold | flex,
         text(favorite ? " ★" : "") | color(accent),
     }));
@@ -231,6 +268,10 @@ Element MusicScreen::render(Color accent) const {
     now.push_back(text(""));
   }
   if (!state.error.empty()) now.push_back(text("   " + state.error) | color(Color::Red));
+  if (const auto at = resume_offer()) {
+    now.push_back(text("   you left off at " + format_clock(*at) + " · press r to resume") |
+                  color(accent));
+  }
 
   // The search / link box.
   Element box = typing_ ? hbox({text("search or paste a link: ") | bold, field_->Render() | flex})
@@ -294,6 +335,7 @@ Element MusicScreen::render(Color accent) const {
         text(message_.empty() ? "/ search · enter play · p pause · +/- volume · f favorite"
                               : message_) |
             (message_.empty() ? dim : color(accent)),
+        text("← → seek 10s · 0-9 jump to 0-90%") | dim,
         text("x stop · dd remove favorite · esc close") | dim,
     });
   }

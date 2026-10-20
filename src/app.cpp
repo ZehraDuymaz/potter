@@ -15,6 +15,9 @@ namespace {
 // Focus time is saved at least this often, so a crash loses little.
 constexpr auto kSaveInterval = std::chrono::seconds(30);
 
+// How far ←/→ jumps in a track, in seconds.
+constexpr double kSeekStep = 10;
+
 // Below this width the task panel would squash the timer, so it's hidden.
 constexpr int kMinWidthForTasks = 82;
 
@@ -30,6 +33,7 @@ App::App(Config config, Paths paths, std::function<void()> quit)
   if (!tasks_.load(paths_.tasks, &error)) status_ = error;
   if (!history_.load(paths_.history, &error)) status_ = error;
   if (!favorites_.load(paths_.favorites, &error)) status_ = error;
+  if (!resume_points_.load(paths_.positions, &error)) status_ = error;
   last_save_ = Timer::Clock::now();
 }
 
@@ -89,6 +93,7 @@ bool App::on_event(const Event& event) {
     if (data_dirty()) save_data(now);
     return true;
   }
+  if (handle_seek_key(event)) return true;
 
   if (event == Event::Character(' ')) {
     timer_.toggle(now);
@@ -148,7 +153,7 @@ Element App::render() {
   switch (view_) {
     case View::Timer:
       body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line(),
-                            music_line());
+                            music_line(), music_time_line(), music_progress());
       if (show_tasks) {
         body = hbox({
             body | flex,
@@ -175,13 +180,16 @@ void App::tick() {
     on_phase_changed();
   }
 
-  if (data_dirty() && (finished || now - last_save_ >= kSaveInterval)) save_data(now);
+  record_position();
+  const bool dirty = data_dirty() || resume_points_.dirty();
+  if (dirty && (finished || now - last_save_ >= kSaveInterval)) save_data(now);
 }
 
 void App::shutdown() {
   const auto now = Timer::Clock::now();
   collect_focus(now);
-  if (data_dirty()) save_data(now);
+  record_position();
+  if (data_dirty() || resume_points_.dirty()) save_data(now);
   if (config_dirty_) save_config(config_, paths_.config);
   player_.stop();  // music doesn't outlive potter
 }
@@ -204,6 +212,39 @@ void App::save_data(Timer::Clock::time_point now) {
   if (tasks_.dirty() && !tasks_.save(paths_.tasks, &error)) status_ = error;
   if (history_.dirty() && !history_.save(paths_.history, &error)) status_ = error;
   if (favorites_.dirty() && !favorites_.save(paths_.favorites, &error)) status_ = error;
+  if (resume_points_.dirty() && !resume_points_.save(paths_.positions, &error)) {
+    status_ = error;
+  }
+}
+
+void App::record_position() {
+  // While a new file loads, mpv may still report the old one's position.
+  if (player_.loading()) return;
+  const PlayerState state = player_.state();
+  if (state.has_media() && state.time_pos && !state.path.empty()) {
+    resume_points_.record(state.path, *state.time_pos, state.duration);
+  }
+}
+
+bool App::handle_seek_key(const Event& event) {
+  const bool arrow = event == Event::ArrowLeft || event == Event::ArrowRight;
+  const bool digit = event.is_character() && event.character().size() == 1 &&
+                     event.character()[0] >= '0' && event.character()[0] <= '9';
+  if (!arrow && !digit) return false;
+
+  if (!player_.state().has_media() && !player_.loading()) {
+    set_status("nothing playing · press m for music");
+    return true;
+  }
+  if (event == Event::ArrowLeft) {
+    player_.seek_by(-kSeekStep);
+  } else if (event == Event::ArrowRight) {
+    player_.seek_by(kSeekStep);
+  } else {
+    player_.seek_percent((event.character()[0] - '0') * 10);
+  }
+  status_.clear();
+  return true;
 }
 
 void App::change_volume(int delta) {
@@ -242,15 +283,24 @@ std::string App::today_line() const {
 }
 
 std::string App::music_line() const {
-  const PlayerState state = player_.state();
-  if (state.has_media()) {
-    std::string line = "♪ " + player_.display_title() + " · " + (state.paused ? "⏸ " : "▶ ") +
-                       format_clock(state.time_pos.value_or(0));
-    if (paused_for_break_) line += " · paused for the break";
-    return line;
-  }
+  if (player_.state().has_media()) return "♪ " + player_.display_title();
   if (player_.loading()) return "♪ loading " + player_.display_title() + "…";
   return "";
+}
+
+std::string App::music_time_line() const {
+  const PlayerState state = player_.state();
+  if (!state.has_media()) return "";
+  std::string line = (state.paused ? "▶ " : "⏸ ") + format_clock(state.time_pos.value_or(0));
+  if (state.duration && *state.duration > 0) line += " / " + format_clock(*state.duration);
+  if (paused_for_break_) line += " · paused for the break";
+  return line;
+}
+
+std::optional<float> App::music_progress() const {
+  const PlayerState state = player_.state();
+  if (!state.has_media() || !state.duration || *state.duration <= 0) return std::nullopt;
+  return static_cast<float>(state.time_pos.value_or(0) / *state.duration);
 }
 
 bool App::tasks_visible() const {

@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+### Added
+- Seeking in music: `←`/`→` jump 10 seconds back/forward, `0`–`9` jump to 0%–90% of the track, on the timer screen and in the music screen ([#3](https://github.com/ZehraDuymaz/potter/issues/3)).
+- potter remembers where you left off in each track (saved to `~/.local/share/potter/positions.toml`). Playing it again offers `press r to resume` in the music screen. YouTube links count as the same track whatever their form (`youtu.be/…`, `youtube.com/watch?v=…`).
+- A progress bar and the track length under the music line on the timer screen.
+
+### Changed
+- YouTube loads faster (about 2 s instead of 4) and jumping in long videos is near-instant (it took 1-5 s): mpv now downloads in 1 MiB pieces, which YouTube doesn't slow down. Needs ffmpeg 7.1 or newer; older versions keep the old speed.
+- mpv's buffer is capped at 8 MiB ahead and 4 MiB behind (mpv's default is 150 MiB), so the faster downloads don't cost RAM.
+- A jump pressed while a link is still loading is made once it has loaded, instead of being ignored.
+- The music play/pause icon now works like a button: ⏸ while playing, ▶ while paused.
+
 ### Fixed
 - macOS: a broken config or data file could crash potter when it was built against Homebrew's toml++. potter now always compiles toml++ in on macOS.
 

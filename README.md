@@ -60,7 +60,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 
 - A music screen (`m`) with one box for everything: type words to **search YouTube** (top 5 results, pick one with enter), paste a **link** to play it, or type a **file or folder path** (`~/Music/...`) to play local music.
 - Playback runs through `mpv` in the background (audio only), controlled by potter. YouTube needs `yt-dlp`.
-- Now playing under the timer: `♪ title · ▶ 1:23`.
+- Now playing under the timer: the title, `⏸ 1:23 / 4:05` and a progress bar.
 - Play/pause with `p` and volume with `+`/`-` from anywhere; the volume is remembered.
 - **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
 - Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
@@ -74,6 +74,12 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - A second tab (`tab`) shows focus totals per task for the last 7 days, 30 days or all time (`r` to switch), with each task's status: active, open, done or deleted.
 - Days recorded before v0.5 keep their totals but have no per-task details.
 - Since v0.5.1: select a task in the totals tab and press `dd` to remove its time from your history — handy for test runs. Its time also comes off those days' totals.
+
+### v0.6: Seek and resume ✅
+
+- `←`/`→` jump back/forward 10 seconds, and `0`–`9` jump to 0%–90% of the track, like on YouTube. Works on the timer screen and in the music screen.
+- potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 · press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered.
+- Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
 
 ### Later ideas
 
@@ -95,6 +101,8 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `m` | Music screen |
 | `p` | Play / pause music |
 | `+` / `-` | Music volume |
+| `←` / `→` | Music: back / forward 10 seconds |
+| `0`–`9` | Music: jump to 0%–90% |
 | `?` | Help |
 | `q` | Quit |
 
@@ -102,7 +110,7 @@ In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x`
 
 In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` move, `dd` remove a task's time from the history, `esc` close.
 
-In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
+In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `←`/`→` seek 10s, `0`–`9` jump, `r` resume where you left off, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
 

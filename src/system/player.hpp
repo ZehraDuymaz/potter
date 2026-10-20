@@ -3,6 +3,7 @@
 #include <sys/types.h>
 
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -30,6 +31,14 @@ class MpvPlayer {
   bool play(const std::string& target, const std::string& title = "");
   void toggle_pause();
   void set_pause(bool paused);
+  // Jumps in what's playing. While a file is still loading, the newest jump
+  // waits until it has loaded.
+  // Moves `seconds` forward (or back, if negative).
+  void seek_by(double seconds);
+  // Jumps to `percent` (0-100) of the track.
+  void seek_percent(int percent);
+  // Jumps to `seconds` from the start.
+  void seek_to(double seconds);
   // Changes the volume by `delta` (clamped to 0-100); returns the new volume.
   int change_volume(int delta);
   // Stops playback and quits mpv.
@@ -46,7 +55,10 @@ class MpvPlayer {
 
  private:
   bool ensure_started();
+  static std::string command_line(const std::vector<std::string>& command);
+  static std::string seek_command(double amount, const char* mode);
   void send(const std::vector<std::string>& command);
+  void seek(double amount, const char* mode);
   void io_loop(std::stop_token stop);
 
   int volume_;
@@ -60,6 +72,11 @@ class MpvPlayer {
   std::string title_hint_;
   bool requested_ = false;  // play() called, file not started yet
   int loaded_at_request_ = 0;
+  struct PendingSeek {
+    double amount;
+    const char* mode;  // an mpv seek mode, e.g. "relative"
+  };
+  std::optional<PendingSeek> pending_seek_;  // a jump asked for while loading
   std::vector<std::string> outbox_;  // JSON lines waiting to be sent
   std::jthread io_;
 };

@@ -86,6 +86,41 @@ class Favorites {
 // $XDG_DATA_HOME/potter/favorites.toml, or ~/.local/share/potter/favorites.toml.
 std::filesystem::path favorites_path();
 
+// The same track under one name: YouTube links by video id (so youtu.be/x and
+// youtube.com/watch?v=x match), anything else as given.
+std::string track_key(std::string_view target);
+
+// Where you left off in each track, so it can be resumed later. Pure logic,
+// no UI. Newest first, at most kMaxEntries.
+class ResumePoints {
+ public:
+  static constexpr std::size_t kMaxEntries = 200;
+  // The start and end of a track don't count as "left off".
+  static constexpr double kMargin = 15;
+
+  // Notes the position of a playing track. Positions near the start or end
+  // forget the track; live streams (no duration) and short tracks are ignored.
+  void record(const std::string& target, double position, std::optional<double> duration);
+  // Whole seconds into the track, if there's a position worth resuming.
+  std::optional<int> get(const std::string& target) const;
+
+  bool dirty() const { return dirty_; }
+  // A missing file is an empty list, not an error.
+  bool load(const std::filesystem::path& path, std::string* error = nullptr);
+  bool save(const std::filesystem::path& path, std::string* error = nullptr);
+
+ private:
+  struct Entry {
+    std::string key;
+    int seconds;
+  };
+  std::vector<Entry> entries_;
+  bool dirty_ = false;
+};
+
+// $XDG_DATA_HOME/potter/positions.toml, or ~/.local/share/potter/positions.toml.
+std::filesystem::path resume_points_path();
+
 // The config folder potter's mpv uses instead of ~/.config/mpv:
 // $XDG_CONFIG_HOME/potter/mpv, or ~/.config/potter/mpv.
 std::filesystem::path mpv_config_dir();

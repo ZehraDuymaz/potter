@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
   // potter quits on Ctrl-C itself, so it can save before exiting.
   screen.ForceHandleCtrlC(false);
   const potter::Paths paths{path, potter::tasks_path(), potter::history_path(),
-                            potter::favorites_path()};
+                            potter::favorites_path(), potter::resume_points_path()};
   potter::App app(std::move(config), paths, screen.ExitLoopClosure());
   app.set_status(error);
 

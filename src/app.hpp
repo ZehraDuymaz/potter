@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <functional>
+#include <optional>
 #include <string>
 
 #include <ftxui/component/event.hpp>
@@ -24,6 +25,7 @@ struct Paths {
   std::filesystem::path tasks;
   std::filesystem::path history;
   std::filesystem::path favorites;
+  std::filesystem::path positions;
 };
 
 // Ties the timer, config and views together and routes key presses.
@@ -53,15 +55,23 @@ class App {
   // Credits focus time that passed since the last call to the active task
   // and to today's history.
   void collect_focus(Timer::Clock::time_point now);
-  // Saves tasks, history and favorites if they changed.
+  // Saves tasks, history, favorites and track positions if they changed.
   void save_data(Timer::Clock::time_point now);
   bool data_dirty() const { return tasks_.dirty() || history_.dirty() || favorites_.dirty(); }
   void change_volume(int delta);
+  // Notes where the playing track is, so it can be resumed later.
+  void record_position();
+  // ←/→ and 0-9 on the timer screen. Returns false for other keys.
+  bool handle_seek_key(const ftxui::Event& event);
   // The current day, according to the day-start setting.
   Day today() const;
   std::string active_task_line() const;
   std::string today_line() const;
+  // What's playing, and where in it (under the timer).
   std::string music_line() const;
+  std::string music_time_line() const;
+  // How far into the track music is, for the bar under the music line.
+  std::optional<float> music_progress() const;
   // The task panel is shown when enabled and the window is wide enough.
   bool tasks_visible() const;
 
@@ -73,6 +83,7 @@ class App {
   TaskList tasks_;
   History history_;
   Favorites favorites_;
+  ResumePoints resume_points_;
   MpvPlayer player_;
   YouTubeSearch search_;
   bool paused_for_break_ = false;  // music was paused by a break, not by you
@@ -80,7 +91,7 @@ class App {
   Timer::Clock::time_point last_save_{};
   ui::SettingsMenu settings_;
   ui::TaskPanel task_panel_{tasks_};
-  ui::MusicScreen music_screen_{player_, search_, favorites_, config_};
+  ui::MusicScreen music_screen_{player_, search_, favorites_, resume_points_, config_};
   ui::HistoryScreen history_screen_{history_, tasks_, config_};
   View view_ = View::Timer;
   std::string status_;

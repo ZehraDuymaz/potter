@@ -72,7 +72,8 @@ Color phase_color(Phase phase, const Config& config) {
 Element timer_view(const Timer& timer, const Config& config,
                    Timer::Clock::time_point now, bool big,
                    const std::string& active_task, const std::string& today,
-                   const std::string& music) {
+                   const std::string& music, const std::string& music_time,
+                   std::optional<float> music_progress) {
   const Color accent = phase_color(timer.phase(), config);
   const auto remaining = timer.remaining(now);
   const std::string clock = format_time(remaining);
@@ -114,7 +115,16 @@ Element timer_view(const Timer& timer, const Config& config,
   }
   if (!music.empty()) {
     lines.push_back(text(""));
+    lines.push_back(text(""));
     lines.push_back(paragraphAlignCenter(music) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
+    if (!music_time.empty()) {
+      lines.push_back(text(""));
+      lines.push_back(text(music_time) | dim | hcenter);
+    }
+    if (music_progress) {
+      lines.push_back(text(""));
+      lines.push_back(gauge(*music_progress) | dim | size(WIDTH, EQUAL, 24) | hcenter);
+    }
   }
   lines.push_back(text(""));
   lines.push_back(text(""));
@@ -138,6 +148,8 @@ Element help_view() {
              row("m", "music"),
              row("p", "play / pause music"),
              row("+ -", "music volume"),
+             row("← →", "music: back / forward 10s"),
+             row("0-9", "music: jump to 0%-90%"),
              row("s", "settings"),
              row("?", "this help"),
              row("q", "quit"),

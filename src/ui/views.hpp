@@ -24,12 +24,14 @@ namespace potter::ui {
 
 ftxui::Color phase_color(Phase phase, const Config& config);
 
-// `big` draws the countdown in large digits; `active_task` and `music` are
-// lines shown under the timer (empty for none); `today` is goal progress.
+// `big` draws the countdown in large digits; `active_task`, `music` (the
+// title) and `music_time` are lines shown under the timer (empty for none);
+// `today` is goal progress; `music_progress` (0-1) draws a bar for the track.
 ftxui::Element timer_view(const Timer& timer, const Config& config,
                           Timer::Clock::time_point now, bool big,
                           const std::string& active_task, const std::string& today,
-                          const std::string& music);
+                          const std::string& music, const std::string& music_time,
+                          std::optional<float> music_progress);
 
 ftxui::Element help_view();
 
@@ -145,7 +147,7 @@ class TaskPanel {
 class MusicScreen {
  public:
   MusicScreen(MpvPlayer& player, YouTubeSearch& search, Favorites& favorites,
-              const Config& config);
+              const ResumePoints& resume_points, const Config& config);
   MusicScreen(const MusicScreen&) = delete;  // the text input points into this object
   MusicScreen& operator=(const MusicScreen&) = delete;
 
@@ -164,17 +166,24 @@ class MusicScreen {
   std::vector<Item> items() const;
   void submit();
   void play_item(const Item& item);
+  // Plays a track and, if you left it halfway before, offers to resume.
+  void play(const std::string& target, const std::string& title);
+  // The offer to resume, while its track is the one playing.
+  std::optional<int> resume_offer() const;
   void toggle_favorite();
 
   MpvPlayer& player_;
   YouTubeSearch& search_;
   Favorites& favorites_;
+  const ResumePoints& resume_points_;
   const Config& config_;
 
   bool typing_ = false;
   bool done_ = false;
   int selected_ = 0;
   int pending_delete_ = -1;  // favorite index waiting for a second 'd'
+  std::string offer_target_;   // track that can be resumed with r
+  int offer_seconds_ = 0;      // where it resumes
   std::string message_;
   std::string buffer_;
   int cursor_ = 0;
