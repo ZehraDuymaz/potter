@@ -1,6 +1,6 @@
 # Releasing potter
 
-A checklist for a new version, e.g. `0.5.4`. Commands run from the repo root.
+A checklist for a new version, e.g. `0.6.0`. Commands run from the repo root.
 
 ## 1. Prepare
 
@@ -11,10 +11,10 @@ A checklist for a new version, e.g. `0.5.4`. Commands run from the repo root.
 ## 2. Release on GitHub
 
 ```sh
-git add . && git commit -m "v0.5.4: ..." && git push
+git add . && git commit -m "v0.6.0: ..." && git push
 # wait until every CI job is green (Linux, macOS, static x86_64 + ARM64)
-git tag -a v0.5.4 -m "potter 0.5.4"
-git push origin v0.5.4
+git tag -a v0.6.0 -m "potter 0.6.0"
+git push origin v0.6.0
 ```
 
 The tag starts `.github/workflows/release.yml`: it builds the static Linux binaries and publishes the release (a few minutes). If the tag doesn't match `CMakeLists.txt`, it stops with an error.
@@ -24,17 +24,17 @@ The tag starts `.github/workflows/release.yml`: it builds the static Linux binar
 Once the release page shows the files:
 
 ```sh
-packaging/update-packages.sh 0.5.4 ../homebrew-tap
+packaging/update-packages.sh 0.6.0 ../homebrew-tap
 ```
 
 It sets the new version and checksums in `packaging/aur/*/PKGBUILD` (+ `.SRCINFO`) and in the Homebrew formula. Then:
 
 ```sh
 # this repo
-git add packaging && git commit -m "packaging: 0.5.4" && git push
+git add packaging && git commit -m "packaging: 0.6.0" && git push
 
 # Homebrew tap: its CI installs and tests the formula on macOS and Linux
-cd ../homebrew-tap && git add . && git commit -m "potter 0.5.4" && git push
+cd ../homebrew-tap && git add . && git commit -m "potter 0.6.0" && git push
 ```
 
 ### AUR
@@ -43,7 +43,7 @@ Each AUR package is its own small git repo. Copy the `PKGBUILD` and `.SRCINFO` i
 
 ```sh
 cp packaging/aur/potter/PKGBUILD packaging/aur/potter/.SRCINFO ../aur-potter/
-cd ../aur-potter && git add PKGBUILD .SRCINFO && git commit -m "0.5.4" && git push
+cd ../aur-potter && git add PKGBUILD .SRCINFO && git commit -m "0.6.0" && git push
 # the same for potter-bin in ../aur-potter-bin
 ```
 
@@ -60,4 +60,11 @@ Cloning a name that doesn't exist yet gives an empty repo; the first push create
 
 - **Only the package recipe changed** (same potter version): raise `pkgrel` in the PKGBUILD (`1` → `2`) and run `makepkg --printsrcinfo > .SRCINFO`. For Homebrew, add `revision 1` under `license`.
 - **FTXUI version changed** in `CMakeLists.txt`: update `_ftxuiver` in `packaging/aur/potter/PKGBUILD` (then `updpkgsums`) and the `resource "ftxui"` url + sha256 in the formula (`sha256sum` of the downloaded tarball).
-- **Never move a published tag.** Fix it in a new version (0.5.5) instead.
+- **The release stopped with "Tag … does not match CMakeLists.txt version":** nothing was published, so the tag can be redone. Fix the version (and the CHANGELOG), commit and push, then delete the tag and tag again:
+  ```sh
+  git tag -d v0.6.0
+  git push origin :refs/tags/v0.6.0
+  git tag -a v0.6.0 -m "potter 0.6.0"
+  git push origin v0.6.0
+  ```
+- **Never move a published tag** (one whose release is out). Fix it in a new version instead.
