@@ -102,8 +102,7 @@ Element timer_view(const Timer& timer, const Config& config,
       text(""),
       text(""),
       gauge(progress) | color(accent) | size(WIDTH, EQUAL, 40) | hcenter,
-      // Blank lines give the dots, the task and the music room to breathe.
-      text(""),
+      // One blank line between groups gives them room to breathe.
       text(""),
       hbox({text(dots) | color(accent), text("  " + today) | dim}) | hcenter,
       text(state) | dim | hcenter,
@@ -114,7 +113,6 @@ Element timer_view(const Timer& timer, const Config& config,
                     size(WIDTH, LESS_THAN, 50) | hcenter);
   }
   if (!music.empty()) {
-    lines.push_back(text(""));
     lines.push_back(text(""));
     lines.push_back(paragraphAlignCenter(music) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
     if (!music_time.empty()) {
@@ -128,10 +126,8 @@ Element timer_view(const Timer& timer, const Config& config,
   }
   if (!sounds.empty()) {
     lines.push_back(text(""));
-    if (music.empty()) lines.push_back(text(""));
     lines.push_back(paragraphAlignCenter(sounds) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
   }
-  lines.push_back(text(""));
   lines.push_back(text(""));
   lines.push_back(text("space start/pause · r reset · n skip · s settings") | dim | hcenter);
   lines.push_back(text("t tasks · m music · b sounds · h history · ? help · q quit") | dim |
