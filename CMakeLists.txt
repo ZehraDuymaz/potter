@@ -54,6 +54,7 @@ add_library(potter_core STATIC
   src/core/tasks.cpp
   src/core/history.cpp
   src/core/music.cpp
+  src/core/sounds.cpp
   src/core/storage.cpp
 )
 target_include_directories(potter_core PUBLIC src)
@@ -67,11 +68,13 @@ add_executable(potter
   src/system/process.cpp
   src/system/player.cpp
   src/system/search.cpp
+  src/system/sounds.cpp
   src/ui/timer_view.cpp
   src/ui/settings_view.cpp
   src/ui/task_view.cpp
   src/ui/history_view.cpp
   src/ui/music_view.cpp
+  src/ui/sounds_view.cpp
   src/ui/common.cpp
 )
 target_link_libraries(potter PRIVATE
@@ -102,3 +105,7 @@ add_test(NAME history_test COMMAND history_test)
 add_executable(music_test tests/music_test.cpp)
 target_link_libraries(music_test PRIVATE potter_core)
 add_test(NAME music_test COMMAND music_test)
+
+add_executable(sounds_test tests/sounds_test.cpp)
+target_link_libraries(sounds_test PRIVATE potter_core)
+add_test(NAME sounds_test COMMAND sounds_test)

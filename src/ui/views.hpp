@@ -12,12 +12,14 @@
 #include "core/config.hpp"
 #include "core/history.hpp"
 #include "core/music.hpp"
+#include "core/sounds.hpp"
 #include "core/tasks.hpp"
 #include "core/timer.hpp"
 
 namespace potter {
 class MpvPlayer;
 class YouTubeSearch;
+class SoundBoard;
 }  // namespace potter
 
 namespace potter::ui {
@@ -26,12 +28,13 @@ ftxui::Color phase_color(Phase phase, const Config& config);
 
 // `big` draws the countdown in large digits; `active_task`, `music` (the
 // title) and `music_time` are lines shown under the timer (empty for none);
-// `today` is goal progress; `music_progress` (0-1) draws a bar for the track.
+// `today` is goal progress; `music_progress` (0-1) draws a bar for the track;
+// `sounds` lists the background sounds that are on.
 ftxui::Element timer_view(const Timer& timer, const Config& config,
                           Timer::Clock::time_point now, bool big,
                           const std::string& active_task, const std::string& today,
                           const std::string& music, const std::string& music_time,
-                          std::optional<float> music_progress);
+                          std::optional<float> music_progress, const std::string& sounds);
 
 ftxui::Element help_view();
 
@@ -189,6 +192,32 @@ class MusicScreen {
   int cursor_ = 0;
   ftxui::Component input_;
   ftxui::Component field_;
+};
+
+// The sounds screen: background sounds like rain or brown noise, each with
+// its own volume, mixed together.
+class SoundsScreen {
+ public:
+  SoundsScreen(SoundBoard& board, SoundMix& mix, std::filesystem::path dir);
+
+  void open();
+  // Handles a key. Always consumes it, since the screen is modal.
+  bool handle(const ftxui::Event& event);
+  bool done() const { return done_; }
+  ftxui::Element render(ftxui::Color accent) const;
+
+ private:
+  void toggle(const Sound& sound);
+  void change_volume(const Sound& sound, int delta);
+  void bring_back_last_mix();
+
+  SoundBoard& board_;
+  SoundMix& mix_;
+  std::filesystem::path dir_;
+  std::vector<Sound> sounds_;
+  int selected_ = 0;
+  bool done_ = false;
+  std::string message_;
 };
 
 }  // namespace potter::ui

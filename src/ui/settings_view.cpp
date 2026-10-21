@@ -42,7 +42,7 @@ const char* row_label(int row) {
     case kAutoFocus: return "Auto-start focus";
     case kDesktop: return "Desktop notifications";
     case kBell: return "Terminal bell";
-    case kMusicBreaks: return "Pause music during breaks";
+    case kMusicBreaks: return "Pause audio during breaks";
     case kTheme: return "Colors";
     case kFocusColor: return "Focus color";
     case kShortColor: return "Short break color";

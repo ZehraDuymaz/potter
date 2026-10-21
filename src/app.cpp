@@ -1,5 +1,6 @@
 #include "app.hpp"
 
+#include <algorithm>
 #include <iostream>
 
 #include <ftxui/screen/terminal.hpp>
@@ -34,6 +35,7 @@ App::App(Config config, Paths paths, std::function<void()> quit)
   if (!history_.load(paths_.history, &error)) status_ = error;
   if (!favorites_.load(paths_.favorites, &error)) status_ = error;
   if (!resume_points_.load(paths_.positions, &error)) status_ = error;
+  if (!sound_mix_.load(paths_.sound_mix, &error)) status_ = error;
   last_save_ = Timer::Clock::now();
 }
 
@@ -85,6 +87,16 @@ bool App::on_event(const Event& event) {
       return true;
     }
 
+    case View::Sounds:
+      sounds_screen_.handle(event);
+      // Turning sounds on by hand overrides the automatic break pause.
+      if (!sound_board_.paused()) sounds_paused_for_break_ = false;
+      if (const std::string error = sound_board_.take_error(); !error.empty()) {
+        set_status(error);
+      }
+      if (sounds_screen_.done()) view_ = View::Timer;
+      return true;
+
     case View::Timer:
       break;
   }
@@ -124,6 +136,9 @@ bool App::on_event(const Event& event) {
     change_volume(+5);
   } else if (event == Event::Character('-')) {
     change_volume(-5);
+  } else if (event == Event::Character('b')) {
+    sounds_screen_.open();
+    view_ = View::Sounds;
   } else if (event == Event::Character('s')) {
     settings_.open(config_);
     view_ = View::Settings;
@@ -153,7 +168,8 @@ Element App::render() {
   switch (view_) {
     case View::Timer:
       body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line(),
-                            music_line(), music_time_line(), music_progress());
+                            music_line(), music_time_line(), music_progress(),
+                            sounds_line());
       if (show_tasks) {
         body = hbox({
             body | flex,
@@ -166,6 +182,7 @@ Element App::render() {
     case View::Help: body = ui::help_view(); break;
     case View::History: body = history_screen_.render(today()); break;
     case View::Music: body = music_screen_.render(accent); break;
+    case View::Sounds: body = sounds_screen_.render(accent); break;
   }
   if (status_.empty()) return body;
   return vbox({body | flex, text(status_) | color(Color::Red) | hcenter});
@@ -181,7 +198,9 @@ void App::tick() {
   }
 
   record_position();
-  const bool dirty = data_dirty() || resume_points_.dirty();
+  sound_board_.update();
+  if (const std::string error = sound_board_.take_error(); !error.empty()) set_status(error);
+  const bool dirty = data_dirty() || resume_points_.dirty() || sound_mix_.dirty();
   if (dirty && (finished || now - last_save_ >= kSaveInterval)) save_data(now);
 }
 
@@ -189,9 +208,10 @@ void App::shutdown() {
   const auto now = Timer::Clock::now();
   collect_focus(now);
   record_position();
-  if (data_dirty() || resume_points_.dirty()) save_data(now);
+  if (data_dirty() || resume_points_.dirty() || sound_mix_.dirty()) save_data(now);
   if (config_dirty_) save_config(config_, paths_.config);
-  player_.stop();  // music doesn't outlive potter
+  player_.stop();  // music and sounds don't outlive potter
+  sound_board_.all_off();
 }
 
 void App::collect_focus(Timer::Clock::time_point now) {
@@ -215,6 +235,7 @@ void App::save_data(Timer::Clock::time_point now) {
   if (resume_points_.dirty() && !resume_points_.save(paths_.positions, &error)) {
     status_ = error;
   }
+  if (sound_mix_.dirty() && !sound_mix_.save(paths_.sound_mix, &error)) status_ = error;
 }
 
 void App::record_position() {
@@ -259,9 +280,19 @@ void App::on_phase_changed() {
       player_.set_pause(true);
       paused_for_break_ = true;
     }
-  } else if (paused_for_break_) {
-    player_.set_pause(false);
-    paused_for_break_ = false;
+    if (!sound_board_.active().empty() && !sound_board_.paused()) {
+      sound_board_.set_pause(true);
+      sounds_paused_for_break_ = true;
+    }
+  } else {
+    if (paused_for_break_) {
+      player_.set_pause(false);
+      paused_for_break_ = false;
+    }
+    if (sounds_paused_for_break_) {
+      sound_board_.set_pause(false);
+      sounds_paused_for_break_ = false;
+    }
   }
 }
 
@@ -294,6 +325,21 @@ std::string App::music_time_line() const {
   std::string line = (state.paused ? "▶ " : "⏸ ") + format_clock(state.time_pos.value_or(0));
   if (state.duration && *state.duration > 0) line += " / " + format_clock(*state.duration);
   if (paused_for_break_) line += " · paused for the break";
+  return line;
+}
+
+std::string App::sounds_line() const {
+  std::string line;
+  for (const std::string& id : sound_board_.active()) {
+    const auto& builtin = builtin_sounds();
+    const auto it = std::find_if(builtin.begin(), builtin.end(),
+                                 [&](const Sound& s) { return s.id == id; });
+    // Your own sounds are named after their file.
+    const std::string name =
+        it != builtin.end() ? it->name : std::filesystem::path(id).stem().string();
+    line += (line.empty() ? "≋ " : " · ") + name;
+  }
+  if (!line.empty() && sound_board_.paused()) line += " · paused";
   return line;
 }
 

@@ -18,7 +18,8 @@ namespace potter {
 // outlives potter.
 class MpvPlayer {
  public:
-  MpvPlayer(int volume, std::string extra_args);
+  // `name` keeps the control sockets of several players apart.
+  MpvPlayer(int volume, std::string extra_args, const std::string& name = "music");
   ~MpvPlayer();
   MpvPlayer(const MpvPlayer&) = delete;
   MpvPlayer& operator=(const MpvPlayer&) = delete;
@@ -41,6 +42,7 @@ class MpvPlayer {
   void seek_to(double seconds);
   // Changes the volume by `delta` (clamped to 0-100); returns the new volume.
   int change_volume(int delta);
+  void set_volume(int volume);
   // Stops playback and quits mpv.
   void stop();
 

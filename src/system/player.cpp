@@ -60,10 +60,11 @@ bool write_all(int fd, const std::string& data) {
 
 }  // namespace
 
-MpvPlayer::MpvPlayer(int volume, std::string extra_args)
+MpvPlayer::MpvPlayer(int volume, std::string extra_args, const std::string& name)
     : volume_(std::clamp(volume, 0, 100)), extra_args_(std::move(extra_args)) {
-  socket_path_ =
-      (runtime_dir() / ("potter-mpv-" + std::to_string(getpid()) + ".sock")).string();
+  socket_path_ = (runtime_dir() /
+                  ("potter-mpv-" + std::to_string(getpid()) + "-" + name + ".sock"))
+                     .string();
 }
 
 MpvPlayer::~MpvPlayer() { stop(); }
@@ -262,9 +263,13 @@ void MpvPlayer::seek(double amount, const char* mode) {
 int MpvPlayer::change_volume(int delta) {
   const PlayerState s = state();
   const double current = s.connected ? s.volume : volume_;
-  volume_ = std::clamp(static_cast<int>(std::lround(current)) + delta, 0, 100);
-  if (s.connected) send({"set_property", "volume", std::to_string(volume_)});
+  set_volume(static_cast<int>(std::lround(current)) + delta);
   return volume_;
+}
+
+void MpvPlayer::set_volume(int volume) {
+  volume_ = std::clamp(volume, 0, 100);
+  if (state().connected) send({"set_property", "volume", std::to_string(volume_)});
 }
 
 void MpvPlayer::stop() {

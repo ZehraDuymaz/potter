@@ -81,6 +81,16 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 · press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered.
 - Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
 
+### v0.7: Sounds ✅
+
+- A sounds screen (`b`) with background sounds like in [Blanket](https://github.com/rafaelmardojai/blanket): rain, storm, wind, waves, stream, birds, summer night, fireplace, coffee shop, city, train and boat, plus white, pink and brown noise.
+- Mix as many as you like, each with its own volume (`←`/`→`). They play next to your music.
+- Recordings are downloaded the first time you turn them on (0.1–4.8 MB each, into `~/.local/share/potter/sounds`); after that they work offline. The noises are generated live, so they need no download.
+- Your own sounds: put audio files (`.ogg`, `.mp3`, `.flac`, …) in `~/.local/share/potter/sounds` and they show up under "Your sounds".
+- potter remembers each sound's volume and your last mix: `r` in the sounds screen brings it back. Sounds start silent when potter opens.
+- Sounds pause during breaks along with the music (the "Pause audio during breaks" setting).
+- Credits for the recordings: [SOUNDS.md](SOUNDS.md).
+
 ### Later ideas
 
 - Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
@@ -103,6 +113,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `+` / `-` | Music volume |
 | `←` / `→` | Music: back / forward 10 seconds |
 | `0`–`9` | Music: jump to 0%–90% |
+| `b` | Sounds screen: rain, waves, brown noise… |
 | `?` | Help |
 | `q` | Quit |
 
@@ -111,6 +122,8 @@ In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x`
 In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` move, `dd` remove a task's time from the history, `esc` close.
 
 In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `←`/`→` seek 10s, `0`–`9` jump, `r` resume where you left off, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
+
+In the sounds screen: `↑↓`/`jk` move, `enter` turn a sound on/off, `←`/`→` volume, `r` bring back your last mix, `x` all off, `esc` close.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
 
@@ -121,7 +134,7 @@ In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` tog
 - **Build:** CMake (3.20+) with GCC or Clang.
 - **Config:** TOML at `~/.config/potter/config.toml`, read with [toml++](https://github.com/marzer/tomlplusplus) (in the Arch `extra` repo, or fetched by CMake).
 - **Data:** tasks, focus history and favorites in `~/.local/share/potter/` (following XDG).
-- **Notifications:** `notify-send`. **Music:** `mpv` (controlled over its JSON IPC socket, parsed with [nlohmann/json](https://github.com/nlohmann/json)) + `yt-dlp`. All optional at runtime: potter tells you what to install.
+- **Notifications:** `notify-send`. **Music and sounds:** `mpv` (controlled over its JSON IPC socket, parsed with [nlohmann/json](https://github.com/nlohmann/json)) + `yt-dlp`; sounds are downloaded with `curl`. All optional at runtime: potter tells you what to install.
 - **Style:** modern C++ with RAII, no raw `new`/`delete`, and `std::chrono` for all time math.
 
 ## Project layout
@@ -140,30 +153,36 @@ potter/
 │   │   ├── tasks.hpp/.cpp     # task list + tasks.toml
 │   │   ├── history.hpp/.cpp   # focus per day, daily goal, streaks
 │   │   ├── music.hpp/.cpp     # input types, yt-dlp + mpv parsing, favorites
+│   │   ├── sounds.hpp/.cpp    # the sound list, volumes and last mix
 │   │   ├── config.hpp/.cpp    # load/save config.toml
 │   │   └── storage.hpp/.cpp   # XDG paths + safe file writes
 │   ├── system/                # talks to the OS and other programs
 │   │   ├── process.hpp/.cpp   # starting programs without a shell
 │   │   ├── notify.hpp/.cpp    # desktop notifications (notify-send)
 │   │   ├── player.hpp/.cpp    # mpv in the background, over its IPC socket
-│   │   └── search.hpp/.cpp    # YouTube search with yt-dlp, in the background
+│   │   ├── search.hpp/.cpp    # YouTube search with yt-dlp, in the background
+│   │   └── sounds.hpp/.cpp    # background sounds: downloads + one looping mpv each
 │   └── ui/                    # everything drawn on screen (FTXUI)
 │       ├── views.hpp
 │       ├── timer_view.cpp     # timer + help screens
 │       ├── task_view.cpp      # task panel
 │       ├── history_view.cpp   # history bar chart
 │       ├── music_view.cpp     # music screen
+│       ├── sounds_view.cpp    # sounds screen
 │       └── settings_view.cpp  # settings screen
 ├── tests/                     # one test program per core module
 │   ├── timer_test.cpp
 │   ├── tasks_test.cpp
 │   ├── history_test.cpp
-│   └── music_test.cpp
+│   ├── music_test.cpp
+│   └── sounds_test.cpp
+├── sounds/                    # the sound recordings, downloaded by potter on first use
 ├── packaging/
 │   ├── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
 │   ├── update-packages.sh     # points AUR + Homebrew at a new release
 │   └── aur/                   # PKGBUILDs: potter (from source), potter-bin
 ├── RELEASING.md               # release checklist
+├── SOUNDS.md                  # credits and licenses for the sounds
 └── docs/
 ```
 
@@ -175,7 +194,7 @@ Everything in `core/` is free of UI and system code, so the logic can be tested 
 - A C++20 compiler (GCC 11+ or Clang 14+) and CMake 3.20+
 - Internet access for the first build (CMake downloads FTXUI, and toml++ / nlohmann-json if they aren't installed)
 - Optional: `notify-send` (libnotify) for desktop notifications
-- Optional: `mpv` for music, plus `yt-dlp` for YouTube
+- Optional: `mpv` for music and sounds, plus `yt-dlp` for YouTube and `curl` to download sounds
 
 On Arch / CachyOS:
 

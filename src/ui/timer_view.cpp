@@ -73,7 +73,7 @@ Element timer_view(const Timer& timer, const Config& config,
                    Timer::Clock::time_point now, bool big,
                    const std::string& active_task, const std::string& today,
                    const std::string& music, const std::string& music_time,
-                   std::optional<float> music_progress) {
+                   std::optional<float> music_progress, const std::string& sounds) {
   const Color accent = phase_color(timer.phase(), config);
   const auto remaining = timer.remaining(now);
   const std::string clock = format_time(remaining);
@@ -126,10 +126,16 @@ Element timer_view(const Timer& timer, const Config& config,
       lines.push_back(gauge(*music_progress) | dim | size(WIDTH, EQUAL, 24) | hcenter);
     }
   }
+  if (!sounds.empty()) {
+    lines.push_back(text(""));
+    if (music.empty()) lines.push_back(text(""));
+    lines.push_back(paragraphAlignCenter(sounds) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
+  }
   lines.push_back(text(""));
   lines.push_back(text(""));
   lines.push_back(text("space start/pause · r reset · n skip · s settings") | dim | hcenter);
-  lines.push_back(text("t tasks · m music · h history · ? help · q quit") | dim | hcenter);
+  lines.push_back(text("t tasks · m music · b sounds · h history · ? help · q quit") | dim |
+                  hcenter);
   return vbox(std::move(lines)) | center;
 }
 
@@ -147,6 +153,7 @@ Element help_view() {
              row("h", "history: days, tasks, streaks"),
              row("m", "music"),
              row("p", "play / pause music"),
+             row("b", "sounds: rain, waves, brown noise…"),
              row("+ -", "music volume"),
              row("← →", "music: back / forward 10s"),
              row("0-9", "music: jump to 0%-90%"),

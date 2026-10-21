@@ -11,8 +11,10 @@
 #include "core/config.hpp"
 #include "core/history.hpp"
 #include "core/music.hpp"
+#include "core/sounds.hpp"
 #include "system/player.hpp"
 #include "system/search.hpp"
+#include "system/sounds.hpp"
 #include "core/tasks.hpp"
 #include "core/timer.hpp"
 #include "ui/views.hpp"
@@ -26,6 +28,8 @@ struct Paths {
   std::filesystem::path history;
   std::filesystem::path favorites;
   std::filesystem::path positions;
+  std::filesystem::path sounds;     // folder with the sound files
+  std::filesystem::path sound_mix;  // volumes and the last mix
 };
 
 // Ties the timer, config and views together and routes key presses.
@@ -45,17 +49,19 @@ class App {
   void set_status(std::string status) { status_ = std::move(status); }
 
  private:
-  enum class View { Timer, Settings, Help, History, Music };
+  enum class View { Timer, Settings, Help, History, Music, Sounds };
 
   void on_phase_finished(Phase finished);
-  // Pauses music when a break begins and resumes it when focus begins again.
+  // Pauses music and sounds when a break begins and resumes them when focus
+  // begins again.
   void on_phase_changed();
   void on_goal_reached();
   void close_settings();
   // Credits focus time that passed since the last call to the active task
   // and to today's history.
   void collect_focus(Timer::Clock::time_point now);
-  // Saves tasks, history, favorites and track positions if they changed.
+  // Saves tasks, history, favorites, track positions and the sound mix if
+  // they changed.
   void save_data(Timer::Clock::time_point now);
   bool data_dirty() const { return tasks_.dirty() || history_.dirty() || favorites_.dirty(); }
   void change_volume(int delta);
@@ -72,6 +78,8 @@ class App {
   std::string music_time_line() const;
   // How far into the track music is, for the bar under the music line.
   std::optional<float> music_progress() const;
+  // The background sounds that are on, e.g. "≋ Rain · Brown noise".
+  std::string sounds_line() const;
   // The task panel is shown when enabled and the window is wide enough.
   bool tasks_visible() const;
 
@@ -84,15 +92,19 @@ class App {
   History history_;
   Favorites favorites_;
   ResumePoints resume_points_;
+  SoundMix sound_mix_;
   MpvPlayer player_;
   YouTubeSearch search_;
+  SoundBoard sound_board_{paths_.sounds, config_.mpv_args};
   bool paused_for_break_ = false;  // music was paused by a break, not by you
+  bool sounds_paused_for_break_ = false;
   bool config_dirty_ = false;      // e.g. volume changed; saved on quit
   Timer::Clock::time_point last_save_{};
   ui::SettingsMenu settings_;
   ui::TaskPanel task_panel_{tasks_};
   ui::MusicScreen music_screen_{player_, search_, favorites_, resume_points_, config_};
   ui::HistoryScreen history_screen_{history_, tasks_, config_};
+  ui::SoundsScreen sounds_screen_{sound_board_, sound_mix_, paths_.sounds};
   View view_ = View::Timer;
   std::string status_;
 };
