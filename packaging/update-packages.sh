@@ -2,13 +2,14 @@
 # After a release is published on GitHub, points the AUR packages and the
 # Homebrew formula at it (version + checksums). Run on Arch from the repo root:
 #
-#   packaging/update-packages.sh 0.5.4 ../homebrew-tap
+#   packaging/update-packages.sh 0.7.1 ../homebrew-tap
 #
+# Leave out the tap folder to update only the AUR files.
 # Then commit/push this repo, the AUR repos and the tap (see RELEASING.md).
 set -eu
 
 version="${1:?usage: packaging/update-packages.sh VERSION [HOMEBREW_TAP_DIR]}"
-tap="${2:-../homebrew-tap}"
+tap="${2:-}"
 url="https://github.com/ZehraDuymaz/potter"
 
 # Fail early if the release isn't out yet.
@@ -27,16 +28,9 @@ for pkg in potter potter-bin; do
   echo "updated packaging/aur/$pkg"
 done
 
-# Homebrew: the source tarball's URL and its checksum (the first sha256 line;
-# the second one belongs to FTXUI and stays).
-formula="$tap/Formula/potter.rb"
-if [ -f "$formula" ]; then
-  sha=$(curl -fsL "$url/archive/refs/tags/v$version.tar.gz" | sha256sum | cut -d' ' -f1)
-  sed -i -E \
-    -e "s#(potter/archive/refs/tags/v)[0-9.]+(\.tar\.gz)#\1$version\2#" \
-    -e "0,/sha256 \"[0-9a-f]+\"/s//sha256 \"$sha\"/" \
-    "$formula"
-  echo "updated $formula"
+# Homebrew, when the tap folder is given.
+if [ -n "$tap" ]; then
+  "$(dirname "$0")/update-formula.sh" "$version" "$tap/Formula/potter.rb"
 else
-  echo "skipped Homebrew: $formula not found"
+  echo "skipped Homebrew: no tap folder given"
 fi

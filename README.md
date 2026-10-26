@@ -181,7 +181,8 @@ potter/
 ├── sounds/                    # the sound recordings, downloaded by potter on first use
 ├── packaging/
 │   ├── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
-│   ├── update-packages.sh     # points AUR + Homebrew at a new release
+│   ├── update-packages.sh     # points the AUR files at a new release
+│   ├── update-formula.sh      # points the Homebrew formula at a release
 │   └── aur/                   # PKGBUILDs: potter (from source), potter-bin
 ├── RELEASING.md               # release checklist
 ├── SOUNDS.md                  # credits and licenses for the sounds
