@@ -290,6 +290,14 @@ mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"
 
 Extra mpv options go in `~/.config/potter/config.toml`, e.g. `mpv_args = "--audio-device=auto"` under `[music]`. Run `mpv --audio-device=help` to list your devices.
 
+### YouTube says "couldn't play this: no audio or video data played"
+
+YouTube sometimes refuses the audio link yt-dlp hands to mpv (HTTP error 403). potter retries for a few seconds, which fixes the usual case. If it still fails, update yt-dlp (below): YouTube changes often and yt-dlp catches up quickly. To see mpv's real error, run it yourself:
+
+```sh
+mpv --no-video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
 ### YouTube search shows "search failed"
 
 YouTube changes often, and an old `yt-dlp` stops working. Update it (`sudo pacman -Syu yt-dlp`, `brew upgrade yt-dlp`, or `yt-dlp -U` if you installed it yourself).

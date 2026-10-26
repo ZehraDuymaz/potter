@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-10-26
+
+### Fixed
+- YouTube failing with "couldn't play this: no audio or video data played". YouTube now refuses (HTTP 403) an audio link used the moment yt-dlp creates it, and accepts it a few seconds later; potter's mpv now retries, so starting a YouTube track takes a few seconds longer. Also retries when the connection drops.
+- A note at the bottom of the music screen: YouTube songs can take up to 7 seconds to start.
+
 ## [0.7.1] - 2026-10-26
 
 ### Added

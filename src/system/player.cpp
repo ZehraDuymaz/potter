@@ -96,8 +96,12 @@ bool MpvPlayer::ensure_started() {
       // YouTube sends one long download barely faster than it plays, so
       // jumping ahead meant waiting for a new download. Asking in 1 MiB
       // pieces gets full speed, so mpv buffers far ahead and jumps are
-      // instant. (Ignored by ffmpeg older than 7.1.)
-      "--stream-lavf-o=request_size=1048576",
+      // instant. (request_size is ignored by ffmpeg older than 7.1.)
+      // YouTube also refuses (403) an audio link used the instant yt-dlp
+      // made it, but accepts it a few seconds later, so retry on 403 and on
+      // dropped connections, waiting a little longer each time.
+      "--stream-lavf-o=request_size=1048576,reconnect=1,reconnect_on_http_error=403,"
+      "reconnect_delay_max=10",
       // With fast downloads mpv would fill its whole 150 MiB buffer. A
       // small one is enough now (about 8 minutes of audio ahead, 4 behind),
       // since a fresh download is quick, and keeps the RAM low.
