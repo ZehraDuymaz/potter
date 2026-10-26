@@ -150,6 +150,7 @@ Element help_view() {
              row("m", "music"),
              row("p", "play / pause music"),
              row("b", "sounds: rain, waves, brown noise…"),
+             row("B", "pause / resume sounds"),
              row("+ -", "music volume"),
              row("← →", "music: back / forward 10s"),
              row("0-9", "music: jump to 0%-90%"),

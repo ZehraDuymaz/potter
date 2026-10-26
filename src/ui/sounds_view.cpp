@@ -90,6 +90,8 @@ bool SoundsScreen::handle(const Event& event) {
     change_volume(sound, +kVolumeStep);
   } else if (event == Event::ArrowLeft || event == Event::Character('h')) {
     change_volume(sound, -kVolumeStep);
+  } else if (event == Event::Character('p')) {
+    if (!board_.toggle_pause()) message_ = "no sounds on: press enter on one first";
   } else if (event == Event::Character('x')) {
     board_.all_off();
   } else if (event == Event::Character('r')) {
@@ -164,13 +166,13 @@ Element SoundsScreen::render(Color accent) const {
     playing += (playing.empty() ? "" : " · ") + it->name;
   }
   std::string status = playing.empty() ? "nothing on" : "≋ " + playing;
-  if (board_.paused()) status += " · paused for the break";
+  if (board_.paused()) status += " · paused";
 
   Element footer = vbox({
-      message_.empty() ? text("enter on/off · ← → volume · r last mix · x all off") | dim
+      message_.empty() ? text("enter on/off · ← → volume · p pause/resume all") | dim
                        : text(message_) | color(accent),
+      text("r last mix · x all off · esc close") | dim,
       text(fit("your own sounds: put audio files in " + short_path(dir_), inner)) | dim,
-      text("esc close") | dim,
   });
 
   Element content = vbox({

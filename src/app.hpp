@@ -78,7 +78,7 @@ class App {
   std::string music_time_line() const;
   // How far into the track music is, for the bar under the music line.
   std::optional<float> music_progress() const;
-  // The background sounds that are on, e.g. "≋ Rain · Brown noise".
+  // The background sounds that are on, e.g. "≋ Rain · Brown noise · B pause".
   std::string sounds_line() const;
   // The task panel is shown when enabled and the window is wide enough.
   bool tasks_visible() const;

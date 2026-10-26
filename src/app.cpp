@@ -139,6 +139,13 @@ bool App::on_event(const Event& event) {
   } else if (event == Event::Character('b')) {
     sounds_screen_.open();
     view_ = View::Sounds;
+  } else if (event == Event::Character('B')) {
+    // Only the sounds: music has its own key (p).
+    if (!sound_board_.toggle_pause()) {
+      set_status("no sounds on · press b for sounds");
+      return true;
+    }
+    if (!sound_board_.paused()) sounds_paused_for_break_ = false;  // by hand wins
   } else if (event == Event::Character('s')) {
     settings_.open(config_);
     view_ = View::Settings;
@@ -339,7 +346,9 @@ std::string App::sounds_line() const {
         it != builtin.end() ? it->name : std::filesystem::path(id).stem().string();
     line += (line.empty() ? "≋ " : " · ") + name;
   }
-  if (!line.empty() && sound_board_.paused()) line += " · paused";
+  if (line.empty()) return line;
+  // The key hint, since sounds have their own pause key.
+  line += sound_board_.paused() ? " · paused · B resume" : " · B pause";
   return line;
 }
 

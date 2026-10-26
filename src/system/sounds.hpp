@@ -33,6 +33,9 @@ class SoundBoard {
   void set_volume(const std::string& id, int volume);
   // Pauses or resumes every sound (for breaks).
   void set_pause(bool paused);
+  // Pauses the sounds that are on, or resumes them. Returns false if none
+  // are on.
+  bool toggle_pause();
   bool paused() const { return paused_; }
 
   // On: playing, or downloading to play.

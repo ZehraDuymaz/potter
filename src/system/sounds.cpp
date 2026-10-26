@@ -153,6 +153,12 @@ void SoundBoard::set_pause(bool paused) {
   }
 }
 
+bool SoundBoard::toggle_pause() {
+  if (active_.empty()) return false;
+  set_pause(!paused_);
+  return true;
+}
+
 bool SoundBoard::on(const std::string& id) const {
   return std::find(active_.begin(), active_.end(), id) != active_.end();
 }

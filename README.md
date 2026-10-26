@@ -89,6 +89,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - Your own sounds: put audio files (`.ogg`, `.mp3`, `.flac`, …) in `~/.local/share/potter/sounds` and they show up under "Your sounds".
 - potter remembers each sound's volume and your last mix: `r` in the sounds screen brings it back. Sounds start silent when potter opens.
 - Sounds pause during breaks along with the music (the "Pause audio during breaks" setting).
+- `B` pauses and resumes just the sounds from the timer screen; the music keeps playing (and `p` still pauses only the music).
 - Credits for the recordings: [SOUNDS.md](SOUNDS.md).
 
 ### Later ideas
@@ -114,6 +115,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `←` / `→` | Music: back / forward 10 seconds |
 | `0`–`9` | Music: jump to 0%–90% |
 | `b` | Sounds screen: rain, waves, brown noise… |
+| `B` | Pause / resume sounds (music keeps playing) |
 | `?` | Help |
 | `q` | Quit |
 
@@ -123,7 +125,7 @@ In the history screen: `←`/`→` pick a day, `tab` switch between days and tas
 
 In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `←`/`→` seek 10s, `0`–`9` jump, `r` resume where you left off, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
 
-In the sounds screen: `↑↓`/`jk` move, `enter` turn a sound on/off, `←`/`→` volume, `r` bring back your last mix, `x` all off, `esc` close.
+In the sounds screen: `↑↓`/`jk` move, `enter` turn a sound on/off, `←`/`→` volume, `p` pause/resume all sounds, `r` bring back your last mix, `x` all off, `esc` close.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
 

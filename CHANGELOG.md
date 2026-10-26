@@ -5,6 +5,9 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+### Added
+- `B` on the timer screen pauses and resumes the background sounds, without touching the music ([#4](https://github.com/ZehraDuymaz/potter/issues/4)). `p` does the same inside the sounds screen.
+
 ## [0.7.0] - 2026-10-21
 
 ### Added
