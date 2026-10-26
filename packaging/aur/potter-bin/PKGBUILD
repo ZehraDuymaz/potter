@@ -1,7 +1,7 @@
 # Maintainer: Zehra Duymaz
 pkgname=potter-bin
 _pkgname=potter
-pkgver=0.7.1
+pkgver=0.7.2
 pkgrel=1
 pkgdesc="Lightweight terminal Pomodoro timer with tasks, focus history and music (static release binary)"
 arch=('x86_64' 'aarch64')
@@ -15,8 +15,8 @@ optdepends=('mpv: music'
 options=('!strip' '!debug')
 source_x86_64=("$_pkgname-$pkgver-x86_64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-linux-x86_64.tar.gz")
 source_aarch64=("$_pkgname-$pkgver-aarch64.tar.gz::$url/releases/download/v$pkgver/$_pkgname-linux-aarch64.tar.gz")
-sha256sums_x86_64=('a640b0a2397506229811884fc361b7fac5f6eff47448f7cafcb896e79041fddc')
-sha256sums_aarch64=('9db84aa23510adf20df42808badd0ef8bdefe47bc23ce3d6e23a48992c2dee3c')
+sha256sums_x86_64=('d841aad4ab2a29d002282f4f2faa6571a3fb391f6d0ee49214ef955199d305a5')
+sha256sums_aarch64=('fb0af08f90e12b5a751c9701910fd5248a6f61648586f9844da22a8bf6f7f5b5')
 
 package() {
   cd "$_pkgname-linux-$CARCH"

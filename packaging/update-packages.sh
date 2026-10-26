@@ -2,7 +2,7 @@
 # After a release is published on GitHub, points the AUR packages and the
 # Homebrew formula at it (version + checksums). Run on Arch from the repo root:
 #
-#   packaging/update-packages.sh 0.7.1 ../homebrew-tap
+#   packaging/update-packages.sh 0.7.2 ../homebrew-tap
 #
 # Leave out the tap folder to update only the AUR files.
 # Then commit/push this repo, the AUR repos and the tap (see RELEASING.md).
