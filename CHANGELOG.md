@@ -5,6 +5,12 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-10-31
+
+### Changed
+- YouTube songs start sooner: always about 6 seconds instead of 5 to 8. potter now checks every quarter second whether YouTube accepts the new audio link, instead of mpv's retry, which waits 1 second and then 3 more. Needs `curl`; without it the old retry still works.
+- The note on the music screen now says YouTube songs can take up to 6 seconds to start (was 7).
+
 ## [0.7.2] - 2026-10-26
 
 ### Fixed

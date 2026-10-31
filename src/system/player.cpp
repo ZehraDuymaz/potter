@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <sstream>
 
 #include <nlohmann/json.hpp>
@@ -23,6 +24,39 @@
 namespace potter {
 
 namespace {
+
+// An mpv script that makes YouTube tracks start sooner. YouTube refuses (403)
+// a new audio link for about 2 seconds. mpv's own retry (below) waits 1
+// second, then 3 more, so it often starts late; this checks the link every
+// quarter second instead. It runs after mpv's yt-dlp hook (priority 10) has
+// made the link, so mpv still sees the YouTube URL and title. Without curl or
+// Lua it does nothing and mpv's retry takes over.
+constexpr const char* kWaitScript = R"lua(
+local function first_url(s)
+  local len, rest = s:match("^edl://.-%%(%d+)%%(.*)$")
+  if len then return rest:sub(1, tonumber(len)) end
+  return s
+end
+
+mp.add_hook("on_load", 20, function()
+  local url = first_url(mp.get_property("stream-open-filename", ""))
+  if not url:find("^https?://[^/]*googlevideo%.com/") then return end
+  local start = mp.get_time()
+  while mp.get_time() - start < 10 do
+    local r = mp.command_native({
+      name = "subprocess", capture_stdout = true, capture_stderr = true,
+      args = {"curl", "-s", "-o", "/dev/null", "-w", "%{http_code}", "-r", "0-0",
+              "--max-time", "3", url},
+    })
+    -- Done: link works, no curl, or another track was picked meanwhile.
+    if r.killed_by_us or r.error_string == "init" or (r.stdout or ""):sub(1, 1) == "2" then
+      return
+    end
+    local w = mp.command_native({name = "subprocess", args = {"sleep", "0.25"}})
+    if w.killed_by_us then return end
+  end
+end)
+)lua";
 
 // Properties potter watches, in the order they're observed.
 constexpr const char* kObserved[] = {"media-title", "path",     "pause",   "idle-active",
@@ -62,9 +96,9 @@ bool write_all(int fd, const std::string& data) {
 
 MpvPlayer::MpvPlayer(int volume, std::string extra_args, const std::string& name)
     : volume_(std::clamp(volume, 0, 100)), extra_args_(std::move(extra_args)) {
-  socket_path_ = (runtime_dir() /
-                  ("potter-mpv-" + std::to_string(getpid()) + "-" + name + ".sock"))
-                     .string();
+  const std::string base = "potter-mpv-" + std::to_string(getpid()) + "-" + name;
+  socket_path_ = (runtime_dir() / (base + ".sock")).string();
+  script_path_ = (runtime_dir() / (base + "-youtube.lua")).string();
 }
 
 MpvPlayer::~MpvPlayer() { stop(); }
@@ -79,6 +113,8 @@ bool MpvPlayer::ensure_started() {
   stop();  // clean up the old connection, if any
 
   std::filesystem::remove(socket_path_);
+  // Fails only if the folder isn't writable; mpv then just skips the script.
+  std::ofstream(script_path_) << kWaitScript;
   std::vector<std::string> args = {
       "mpv",
       "--idle=yes",
@@ -98,8 +134,9 @@ bool MpvPlayer::ensure_started() {
       // pieces gets full speed, so mpv buffers far ahead and jumps are
       // instant. (request_size is ignored by ffmpeg older than 7.1.)
       // YouTube also refuses (403) an audio link used the instant yt-dlp
-      // made it, but accepts it a few seconds later, so retry on 403 and on
-      // dropped connections, waiting a little longer each time.
+      // made it, but accepts it a few seconds later. kWaitScript usually
+      // waits that out; as a fallback, retry on 403 and on dropped
+      // connections, waiting a little longer each time.
       "--stream-lavf-o=request_size=1048576,reconnect=1,reconnect_on_http_error=403,"
       "reconnect_delay_max=10",
       // With fast downloads mpv would fill its whole 150 MiB buffer. A
@@ -108,6 +145,7 @@ bool MpvPlayer::ensure_started() {
       "--demuxer-max-bytes=8MiB",
       "--demuxer-max-back-bytes=4MiB",
       "--input-ipc-server=" + socket_path_,
+      "--script=" + script_path_,
       "--volume=" + std::to_string(volume_),
   };
   std::istringstream extra(extra_args_);
@@ -301,6 +339,7 @@ void MpvPlayer::stop() {
   }
   std::error_code ec;
   std::filesystem::remove(socket_path_, ec);
+  std::filesystem::remove(script_path_, ec);
 
   std::lock_guard lock(mutex_);
   state_ = PlayerState{};

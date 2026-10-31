@@ -66,6 +66,7 @@ class MpvPlayer {
   int volume_;
   std::string extra_args_;
   std::string socket_path_;
+  std::string script_path_;  // kWaitScript, written when mpv starts
   pid_t pid_ = -1;
   int wake_[2] = {-1, -1};  // pipe to wake the IO thread when commands are queued
 

@@ -340,7 +340,7 @@ Element MusicScreen::render(Color accent) const {
     });
   }
   // Always visible, so nobody gives up on a song that's still starting.
-  footer = vbox({footer, text(""), text("note: YouTube songs can take up to 7 seconds to start") | dim});
+  footer = vbox({footer, text(""), text("note: YouTube songs can take up to 6 seconds to start") | dim});
 
   const int volume = static_cast<int>(state.connected ? state.volume : player_.volume());
   Element content = vbox({
