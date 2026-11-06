@@ -52,7 +52,7 @@ MusicScreen::MusicScreen(MpvPlayer& player, YouTubeSearch& search, Favorites& fa
 
 void MusicScreen::open() {
   done_ = false;
-  pending_delete_ = -1;
+  pending_delete_.reset();
   message_.clear();
   // Nothing to browse yet? Go straight to typing.
   typing_ = favorites_.list().empty() && search_.status().results.empty();
@@ -65,26 +65,85 @@ void MusicScreen::open() {
 std::vector<MusicScreen::Item> MusicScreen::items() const {
   std::vector<Item> list;
   const auto status = search_.status();
-  for (std::size_t i = 0; i < status.results.size(); ++i) list.push_back({true, i});
-  for (std::size_t i = 0; i < favorites_.list().size(); ++i) list.push_back({false, i});
+  for (std::size_t i = 0; i < status.results.size(); ++i) list.push_back({Kind::Result, i});
+  // A queue of one is just what's playing.
+  const auto queue = player_.state().queue;
+  if (queue.size() > 1) {
+    for (std::size_t i = 0; i < queue.size(); ++i) list.push_back({Kind::Queue, i});
+  }
+  for (std::size_t i = 0; i < favorites_.list().size(); ++i) list.push_back({Kind::Favorite, i});
   return list;
 }
 
-void MusicScreen::play_item(const Item& item) {
-  if (item.is_result) {
-    const auto results = search_.status().results;
-    if (item.index < results.size()) {
-      play(results[item.index].url(), results[item.index].title);
+std::pair<std::string, std::string> MusicScreen::item_track(const Item& item) const {
+  switch (item.kind) {
+    case Kind::Result: {
+      const auto results = search_.status().results;
+      if (item.index < results.size()) return {results[item.index].url(), results[item.index].title};
+      break;
     }
-  } else if (item.index < favorites_.list().size()) {
-    const Favorite& f = favorites_.list()[item.index];
-    play(f.target, f.title);
+    case Kind::Queue: {
+      const auto queue = player_.state().queue;
+      if (item.index < queue.size()) {
+        return {queue[item.index].target, player_.entry_title(queue[item.index])};
+      }
+      break;
+    }
+    case Kind::Favorite:
+      if (item.index < favorites_.list().size()) {
+        const Favorite& f = favorites_.list()[item.index];
+        return {f.target, f.title};
+      }
+      break;
+  }
+  return {};
+}
+
+void MusicScreen::play_item(const Item& item) {
+  const auto [target, title] = item_track(item);
+  if (target.empty()) return;
+  if (item.kind == Kind::Queue) {
+    player_.play_index(static_cast<int>(item.index));
+    offer_resume(target);
+  } else {
+    play(target, title);
+  }
+}
+
+void MusicScreen::enqueue_item(const Item& item) {
+  const auto [target, title] = item_track(item);
+  if (target.empty()) return;
+  if (item.kind == Kind::Queue) {
+    message_ = "already in the queue · enter plays it";
+  } else {
+    enqueue(target, title);
+  }
+}
+
+void MusicScreen::enqueue(const std::string& target, const std::string& title) {
+  if (!player_.state().has_media() && !player_.loading()) {
+    play(target, title);  // nothing playing: no need to wait in line
+  } else {
+    player_.enqueue(target, title);
+    message_ = "added to queue: " + title;
+  }
+}
+
+void MusicScreen::remove_item(const Item& item) {
+  if (item.kind == Kind::Queue) {
+    player_.remove_index(static_cast<int>(item.index));
+  } else if (item.kind == Kind::Favorite) {
+    favorites_.remove(item.index);
   }
 }
 
 void MusicScreen::play(const std::string& target, const std::string& title) {
-  const std::optional<int> resume = resume_points_.get(target);
   player_.play(target, title);
+  offer_resume(target);
+}
+
+void MusicScreen::offer_resume(const std::string& target) {
+  const std::optional<int> resume = resume_points_.get(target);
   offer_target_ = resume ? target : "";
   offer_seconds_ = resume.value_or(0);
 }
@@ -101,7 +160,7 @@ std::optional<int> MusicScreen::resume_offer() const {
   return offer_seconds_;
 }
 
-void MusicScreen::submit() {
+void MusicScreen::submit(bool queue) {
   const std::string input = trim(buffer_);
   typing_ = false;
   if (input.empty()) return;
@@ -116,7 +175,7 @@ void MusicScreen::submit() {
       selected_ = 0;
       break;
     case InputKind::Url:
-      play(input, input);
+      queue ? enqueue(input, input) : play(input, input);
       break;
     case InputKind::File: {
       const std::string path = expand_home(input);
@@ -125,7 +184,8 @@ void MusicScreen::submit() {
         message_ = "not found: " + path;
         return;
       }
-      play(path, std::filesystem::path(path).filename().string());
+      const std::string name = std::filesystem::path(path).filename().string();
+      queue ? enqueue(path, name) : play(path, name);
       break;
     }
   }
@@ -151,6 +211,8 @@ bool MusicScreen::handle(const Event& event) {
   if (typing_) {
     if (event == Event::Return) {
       submit();
+    } else if (event == Event::Tab) {
+      submit(/*queue=*/true);
     } else if (event == Event::Escape) {
       typing_ = false;
     } else {
@@ -159,8 +221,8 @@ bool MusicScreen::handle(const Event& event) {
     return true;
   }
 
-  const int confirm_delete = pending_delete_;
-  pending_delete_ = -1;
+  const std::optional<Item> confirm_delete = pending_delete_;
+  pending_delete_.reset();
   message_.clear();
 
   const auto list = items();
@@ -175,8 +237,32 @@ bool MusicScreen::handle(const Event& event) {
     if (!list.empty()) selected_ = std::min(selected_ + 1, static_cast<int>(list.size()) - 1);
   } else if (event == Event::Character('k') || event == Event::ArrowUp) {
     selected_ = std::max(selected_ - 1, 0);
+  } else if (event == Event::Tab) {
+    // To the first row of the next section, round to the top.
+    if (!list.empty()) {
+      int row = selected_;
+      while (row < static_cast<int>(list.size()) && list[row].kind == list[selected_].kind) ++row;
+      selected_ = row < static_cast<int>(list.size()) ? row : 0;
+    }
   } else if (event == Event::Return) {
     if (!list.empty()) play_item(list[selected_]);
+  } else if (event == Event::Character('e')) {
+    if (!list.empty()) enqueue_item(list[selected_]);
+  } else if (event == Event::Character('>')) {
+    player_.next();
+  } else if (event == Event::Character('<')) {
+    player_.previous();
+  } else if (event == Event::Character('l')) {
+    switch (player_.cycle_loop()) {
+      case LoopMode::Off: message_ = "loop off"; break;
+      case LoopMode::Track: message_ = "looping this track"; break;
+      case LoopMode::Queue: message_ = "looping the queue"; break;
+    }
+  } else if (event == Event::Character('c')) {
+    if (player_.state().queue.size() > 1) {
+      player_.clear_queue();
+      message_ = "queue cleared";
+    }
   } else if (event == Event::Character('p') || event == Event::Character(' ')) {
     player_.toggle_pause();
   } else if (event == Event::ArrowLeft) {
@@ -201,12 +287,11 @@ bool MusicScreen::handle(const Event& event) {
   } else if (event == Event::Character('x')) {
     player_.stop();
   } else if (event == Event::Character('d')) {
-    if (!list.empty() && !list[selected_].is_result) {
-      const int index = static_cast<int>(list[selected_].index);
-      if (confirm_delete == index) {
-        favorites_.remove(static_cast<std::size_t>(index));
+    if (!list.empty() && list[selected_].kind != Kind::Result) {
+      if (confirm_delete == list[selected_]) {
+        remove_item(list[selected_]);
       } else {
-        pending_delete_ = index;
+        pending_delete_ = list[selected_];
       }
     }
   } else if (event == Event::Escape || event == Event::Character('m') ||
@@ -252,12 +337,16 @@ Element MusicScreen::render(Color accent) const {
     }));
     const double pos = state.time_pos.value_or(0);
     std::string time = format_clock(pos);
+    const std::string place =
+        state.queue.size() > 1 && state.queue_pos >= 0
+            ? " · " + std::to_string(state.queue_pos + 1) + "/" + std::to_string(state.queue.size())
+            : "";
     Element bar = text("");
     if (state.duration && *state.duration > 0) {
-      time += " / " + format_clock(*state.duration);
+      time += " / " + format_clock(*state.duration) + place;
       bar = gauge(static_cast<float>(pos / *state.duration)) | color(accent) | flex;
     } else {
-      time += " · live";
+      time += " · live" + place;
     }
     now.push_back(hbox({text("   " + time + "  ") | dim, bar}));
   } else if (player_.loading()) {
@@ -308,6 +397,29 @@ Element MusicScreen::render(Color accent) const {
             index++);
   }
 
+  if (state.queue.size() > 1) {
+    if (!rows.empty()) rows.push_back(text(""));
+    const int up_next = state.queue_pos >= 0
+                            ? static_cast<int>(state.queue.size()) - state.queue_pos - 1
+                            : static_cast<int>(state.queue.size());
+    rows.push_back(hbox({text("Queue") | bold,
+                         text("  " + std::to_string(up_next) + " up next") | dim}));
+    const int number_width = static_cast<int>(std::to_string(state.queue.size()).size());
+    for (std::size_t i = 0; i < state.queue.size(); ++i) {
+      const bool current = static_cast<int>(i) == state.queue_pos;
+      const bool played = static_cast<int>(i) < state.queue_pos;
+      Element mark = text(current ? "  ▶ " : "    ") | color(accent);
+      Element row = hbox({
+          mark,
+          text(pad_left(std::to_string(i + 1), number_width) + ". ") | dim,
+          text(fit(player_.entry_title(state.queue[i]), inner - 6 - number_width)) | flex,
+      });
+      if (played) row = row | dim;
+      if (current) row = row | bold;
+      add_row(row, index++);
+    }
+  }
+
   if (!rows.empty()) rows.push_back(text(""));
   rows.push_back(text("Favorites") | bold);
   if (favorites_.list().empty()) {
@@ -319,32 +431,43 @@ Element MusicScreen::render(Color accent) const {
 
   // Footer: a message, a delete prompt, or the key hints.
   Element footer;
-  if (pending_delete_ >= 0 && pending_delete_ < static_cast<int>(favorites_.list().size())) {
+  const auto [delete_target, delete_title] =
+      pending_delete_ ? item_track(*pending_delete_) : std::pair<std::string, std::string>{};
+  if (!delete_target.empty()) {
+    const bool queue = pending_delete_->kind == Kind::Queue;
     footer = vbox({
-        text("remove \"" + favorites_.list()[pending_delete_].title + "\" from favorites?") |
+        text("remove \"" + delete_title + "\" from " + (queue ? "the queue?" : "favorites?")) |
             color(Color::Red),
         text("press d again · any other key cancels") | dim,
     });
   } else if (typing_) {
     footer = vbox({
-        text("enter search / play · esc cancel") | dim,
+        text("enter search / play · tab queue a link · esc cancel") | dim,
         text("tip: links (https://…) and paths (~/Music/…) play directly") | dim,
     });
   } else {
-    footer = vbox({
-        text(message_.empty() ? "/ search · enter play · p pause · +/- volume · f favorite"
-                              : message_) |
-            (message_.empty() ? dim : color(accent)),
-        text("← → seek 10s · 0-9 jump to 0-90%") | dim,
-        text("x stop · dd remove favorite · esc close") | dim,
-    });
+    const auto lines = wrap_hints({"/ search", "enter play", "e add to queue", "f favorite",
+                                   "↑↓ jk move", "tab next section", "dd remove", "x stop",
+                                   "p pause", "+/- volume", "← → seek 10s", "0-9 jump",
+                                   "< > previous/next", "l loop", "c clear queue", "esc close"},
+                                  inner);
+    Elements hint_rows;
+    for (const std::string& line : lines) hint_rows.push_back(text(line) | dim);
+    // A message takes the first line's place, so the screen doesn't jump.
+    if (!message_.empty()) hint_rows.front() = text(fit(message_, inner)) | color(accent);
+    footer = vbox(std::move(hint_rows));
   }
   // Always visible, so nobody gives up on a song that's still starting.
-  footer = vbox({footer, text(""), text("note: YouTube songs can take up to 6 seconds to start") | dim});
+  footer = vbox({footer, text("note: YouTube songs can take up to 6 seconds to start") | dim});
 
   const int volume = static_cast<int>(state.connected ? state.volume : player_.volume());
   Element content = vbox({
-      hbox({text("Music") | bold, filler(), text("vol " + std::to_string(volume) + "%") | dim}),
+      hbox({text("Music") | bold, filler(),
+            text(state.loop() == LoopMode::Track   ? "loop track · "
+                 : state.loop() == LoopMode::Queue ? "loop queue · "
+                                                   : "") |
+                color(accent),
+            text("vol " + std::to_string(volume) + "%") | dim}),
       separator(),
       text(""),
       vbox(std::move(now)),

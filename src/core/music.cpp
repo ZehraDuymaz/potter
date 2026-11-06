@@ -113,6 +113,23 @@ void apply_mpv_message(PlayerState& state, std::string_view line) {
       state.time_pos = has && it->is_number() ? std::optional(it->get<double>()) : std::nullopt;
     } else if (name == "duration") {
       state.duration = has && it->is_number() ? std::optional(it->get<double>()) : std::nullopt;
+    } else if (name == "playlist") {
+      state.queue.clear();
+      if (has && it->is_array()) {
+        for (const auto& entry : *it) {
+          if (!entry.is_object()) continue;
+          state.queue.push_back({entry.value("filename", std::string()),
+                                 entry.value("title", std::string())});
+        }
+      }
+    } else if (name == "playlist-pos") {
+      state.queue_pos = has && it->is_number_integer() ? it->get<int>() : -1;
+    } else if (name == "loop-file" || name == "loop-playlist") {
+      // "inf", "force", a count, or false/"no".
+      const bool on = has && ((it->is_string() && it->get<std::string>() != "no") ||
+                              (it->is_number() && it->get<double>() > 0) ||
+                              (it->is_boolean() && it->get<bool>()));
+      (name == "loop-file" ? state.loop_file : state.loop_playlist) = on;
     }
   } else if (event == "start-file") {
     state.error.clear();

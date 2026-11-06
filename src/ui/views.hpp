@@ -2,6 +2,7 @@
 
 #include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <ftxui/component/component_base.hpp>
@@ -44,6 +45,9 @@ inline constexpr int kPadX = 2;  // spaces inside a screen's border, left and ri
 std::string fit(const std::string& s, int width);
 // Pads `s` on the left to `width` terminal columns.
 std::string pad_left(const std::string& s, int width);
+// Packs key hints like "p pause" into as few lines of at most `width`
+// columns as they fit, joined by " · ", in order.
+std::vector<std::string> wrap_hints(const std::vector<std::string>& hints, int width);
 // A screen width that grows with the terminal, within limits.
 int screen_width(int min_width, int max_width);
 // Wraps a screen's content in padding and a rounded border, centered.
@@ -146,7 +150,8 @@ class TaskPanel {
   ftxui::Component field_;
 };
 
-// The music screen: now playing, a search/link box, results and favorites.
+// The music screen: now playing, a search/link box, results, the queue and
+// favorites.
 class MusicScreen {
  public:
   MusicScreen(MpvPlayer& player, YouTubeSearch& search, Favorites& favorites,
@@ -161,16 +166,26 @@ class MusicScreen {
   ftxui::Element render(ftxui::Color accent) const;
 
  private:
-  // A selectable row: a search result or a favorite.
+  // A selectable row: a search result, a queue entry or a favorite.
+  enum class Kind { Result, Queue, Favorite };
   struct Item {
-    bool is_result;
+    Kind kind;
     std::size_t index;
+    bool operator==(const Item&) const = default;
   };
   std::vector<Item> items() const;
-  void submit();
+  // Searches, or plays the link or path typed (`queue`: adds it to the queue).
+  void submit(bool queue = false);
   void play_item(const Item& item);
+  void enqueue_item(const Item& item);
+  // Adds a track to the queue, or plays it if nothing is playing.
+  void enqueue(const std::string& target, const std::string& title);
+  void remove_item(const Item& item);
+  // The target and title a row stands for.
+  std::pair<std::string, std::string> item_track(const Item& item) const;
   // Plays a track and, if you left it halfway before, offers to resume.
   void play(const std::string& target, const std::string& title);
+  void offer_resume(const std::string& target);
   // The offer to resume, while its track is the one playing.
   std::optional<int> resume_offer() const;
   void toggle_favorite();
@@ -184,7 +199,7 @@ class MusicScreen {
   bool typing_ = false;
   bool done_ = false;
   int selected_ = 0;
-  int pending_delete_ = -1;  // favorite index waiting for a second 'd'
+  std::optional<Item> pending_delete_;  // row waiting for a second 'd'
   std::string offer_target_;   // track that can be resumed with r
   int offer_seconds_ = 0;      // where it resumes
   std::string message_;

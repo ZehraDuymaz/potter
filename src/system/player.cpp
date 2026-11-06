@@ -59,8 +59,10 @@ end)
 )lua";
 
 // Properties potter watches, in the order they're observed.
-constexpr const char* kObserved[] = {"media-title", "path",     "pause",   "idle-active",
-                                     "volume",      "time-pos", "duration"};
+constexpr const char* kObserved[] = {"media-title", "path",         "pause",
+                                     "idle-active", "volume",       "time-pos",
+                                     "duration",    "playlist",     "playlist-pos",
+                                     "loop-file",   "loop-playlist"};
 
 std::filesystem::path runtime_dir() {
   for (const char* var : {"XDG_RUNTIME_DIR", "TMPDIR"}) {
@@ -147,6 +149,11 @@ bool MpvPlayer::ensure_started() {
       "--input-ipc-server=" + socket_path_,
       "--script=" + script_path_,
       "--volume=" + std::to_string(volume_),
+      // A link to a video in a playlist (watch?v=...&list=...) plays the
+      // whole playlist, starting at that video.
+      "--ytdl-raw-options-append=yes-playlist=",
+      std::string("--loop-file=") + (loop_ == LoopMode::Track ? "inf" : "no"),
+      std::string("--loop-playlist=") + (loop_ == LoopMode::Queue ? "inf" : "no"),
   };
   std::istringstream extra(extra_args_);
   for (std::string arg; extra >> arg;) args.push_back(arg);
@@ -253,24 +260,87 @@ void MpvPlayer::send(const std::vector<std::string>& command) {
   }
 }
 
+void MpvPlayer::begin_request(const std::string& target, const std::string& title) {
+  std::lock_guard lock(mutex_);
+  title_hint_ = title;
+  if (!title.empty()) known_titles_[target] = title;
+  requested_ = true;
+  loaded_at_request_ = state_.files_loaded;
+  pending_seek_.reset();
+  state_.error.clear();
+}
+
 bool MpvPlayer::play(const std::string& target, const std::string& title) {
   if (!ensure_started()) {
     std::lock_guard lock(mutex_);
     state_.error = "couldn't start mpv";
     return false;
   }
-  {
-    std::lock_guard lock(mutex_);
-    title_hint_ = title;
-    requested_ = true;
-    loaded_at_request_ = state_.files_loaded;
-    pending_seek_.reset();
-    state_.error.clear();
+  const PlayerState s = state();
+  begin_request(target, title);
+  const int pos = s.queue_pos;
+  const int size = static_cast<int>(s.queue.size());
+  if (pos < 0 || size <= 1) {
+    send({"loadfile", target, "replace"});
+  } else {
+    // Swap the current track for the new one and keep the rest of the queue.
+    // (mpv 0.38 has `loadfile ... insert-at-play`; this works on older ones.)
+    send({"loadfile", target, "append"});
+    send({"playlist-move", std::to_string(size), std::to_string(pos + 1)});
+    send({"playlist-play-index", std::to_string(pos + 1)});
+    send({"playlist-remove", std::to_string(pos)});
   }
-  send({"loadfile", target, "replace"});
   // mpv stays paused across files, so make sure the new one plays.
   send({"set_property", "pause", "no"});
   return true;
+}
+
+bool MpvPlayer::enqueue(const std::string& target, const std::string& title) {
+  const PlayerState s = state();
+  if (!s.has_media() && !loading()) return play(target, title);
+  {
+    std::lock_guard lock(mutex_);
+    if (!title.empty()) known_titles_[target] = title;
+  }
+  send({"loadfile", target, "append"});
+  return true;
+}
+
+void MpvPlayer::play_index(int index) {
+  const PlayerState s = state();
+  if (!s.connected || index < 0 || index >= static_cast<int>(s.queue.size())) return;
+  begin_request(s.queue[index].target, entry_title(s.queue[index]));
+  send({"playlist-play-index", std::to_string(index)});
+  send({"set_property", "pause", "no"});
+}
+
+void MpvPlayer::remove_index(int index) {
+  const PlayerState s = state();
+  if (!s.connected || index < 0 || index >= static_cast<int>(s.queue.size())) return;
+  send({"playlist-remove", std::to_string(index)});
+}
+
+void MpvPlayer::clear_queue() {
+  if (state().connected) send({"playlist-clear"});
+}
+
+void MpvPlayer::next() {
+  if (state().has_media()) send({"playlist-next"});
+}
+
+void MpvPlayer::previous() {
+  if (state().has_media()) send({"playlist-prev"});
+}
+
+LoopMode MpvPlayer::cycle_loop() {
+  loop_ = loop_ == LoopMode::Off ? LoopMode::Track
+          : loop_ == LoopMode::Track ? LoopMode::Queue
+                                     : LoopMode::Off;
+  if (state().connected) {
+    send({"set_property", "loop-file", loop_ == LoopMode::Track ? "inf" : "no"});
+    send({"set_property", "loop-playlist", loop_ == LoopMode::Queue ? "inf" : "no"});
+  }
+  return loop_;
 }
 
 void MpvPlayer::toggle_pause() {
@@ -366,8 +436,20 @@ std::string MpvPlayer::display_title() const {
   const bool is_link = state_.path.find("://") != std::string::npos;
   const bool unresolved = is_link && state_.path.find(state_.title) != std::string::npos;
   if (!state_.title.empty() && !unresolved) return state_.title;
-  if (!title_hint_.empty()) return title_hint_;
+  if (!title_hint_.empty() && requested_) return title_hint_;
+  if (const auto it = known_titles_.find(state_.path); it != known_titles_.end()) {
+    return it->second;
+  }
   return state_.title.empty() ? state_.path : state_.title;
+}
+
+std::string MpvPlayer::entry_title(const QueueEntry& entry) const {
+  if (!entry.title.empty()) return entry.title;
+  std::lock_guard lock(mutex_);
+  if (const auto it = known_titles_.find(entry.target); it != known_titles_.end()) {
+    return it->second;
+  }
+  return entry.target;
 }
 
 }  // namespace potter

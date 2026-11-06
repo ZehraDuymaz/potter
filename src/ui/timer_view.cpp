@@ -149,6 +149,7 @@ Element help_view() {
              row("h", "history: days, tasks, streaks"),
              row("m", "music"),
              row("p", "play / pause music"),
+             row("< >", "music: previous / next in queue"),
              row("b", "sounds: rain, waves, brown noise…"),
              row("B", "pause / resume sounds"),
              row("+ -", "music volume"),

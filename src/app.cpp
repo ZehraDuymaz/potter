@@ -132,6 +132,12 @@ bool App::on_event(const Event& event) {
       set_status("nothing playing · press m for music");
       return true;
     }
+  } else if (event == Event::Character('<') || event == Event::Character('>')) {
+    if (!player_.state().has_media()) {
+      set_status("nothing playing · press m for music");
+      return true;
+    }
+    event == Event::Character('>') ? player_.next() : player_.previous();
   } else if (event == Event::Character('+') || event == Event::Character('=')) {
     change_volume(+5);
   } else if (event == Event::Character('-')) {

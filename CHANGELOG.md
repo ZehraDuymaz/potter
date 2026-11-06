@@ -5,6 +5,19 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-06
+
+### Added
+- A queue (#10): `e` in the music screen adds the selected search result or favorite to the queue, and `tab` in the search box queues a typed link or path. The queue is listed in the music screen; `enter` plays an entry, `dd` removes it and `c` clears what's up next.
+- `<` / `>` go to the previous / next track, in the music screen and on the timer screen.
+- Looping (#10): `l` in the music screen cycles loop off → this track → the whole queue. The header shows the loop mode.
+- YouTube playlist links (#10): a playlist link fills the queue with its tracks, and a link to a video in a playlist (`watch?v=…&list=…`) plays the playlist starting at that video.
+- The music screen shows the track's place in the queue next to the time (`1:02 / 3:00 · 3/12`).
+
+### Changed
+- Playing a track while a queue exists replaces only the current track; the tracks up next stay queued.
+- The music screen's key hints fill each line before wrapping, so they take fewer lines in a wide window, and they now list `↑↓`/`jk` to move through the list.
+
 ## [0.7.3] - 2026-10-31
 
 ### Changed

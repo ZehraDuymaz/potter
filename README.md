@@ -92,6 +92,14 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - `B` pauses and resumes just the sounds from the timer screen; the music keeps playing (and `p` still pauses only the music).
 - Credits for the recordings: [SOUNDS.md](SOUNDS.md).
 
+### v0.8: Queue, loop and playlists ✅
+
+- **Queue:** press `e` on a search result or favorite to play it after the current track (or `tab` instead of `enter` to queue a link or path you typed). The queue shows in the music screen: `enter` plays an entry, `dd` removes it, `c` clears what's up next.
+- `<` / `>` go to the previous / next track, in the music screen and on the timer screen.
+- **Loop:** `l` cycles through loop off → loop this track → loop the queue. Kept until you quit potter.
+- **YouTube playlists:** paste a playlist link and all of its tracks go into the queue. A link to a video inside a playlist (`watch?v=…&list=…`) plays the whole playlist, starting at that video.
+- Playing something with `enter` while a queue exists replaces just the current track; the rest of the queue stays.
+
 ### Later ideas
 
 - Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
@@ -111,6 +119,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 | `h` | History: days, task totals, streaks |
 | `m` | Music screen |
 | `p` | Play / pause music |
+| `<` / `>` | Music: previous / next track in the queue |
 | `+` / `-` | Music volume |
 | `←` / `→` | Music: back / forward 10 seconds |
 | `0`–`9` | Music: jump to 0%–90% |
@@ -123,7 +132,7 @@ In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x`
 
 In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` move, `dd` remove a task's time from the history, `esc` close.
 
-In the music screen: `/` search or paste a link/path, `↑↓`/`jk` move, `enter` play, `p` pause, `+`/`-` volume, `←`/`→` seek 10s, `0`–`9` jump, `r` resume where you left off, `f` add/remove favorite, `x` stop, `dd` remove a favorite, `esc` close.
+In the music screen: `/` search or paste a link/path (`enter` plays it, `tab` queues it), `↑↓`/`jk` move, `tab` next section, `enter` play, `e` add to queue, `<`/`>` previous/next, `l` loop off/track/queue, `c` clear the queue, `p` pause, `+`/`-` volume, `←`/`→` seek 10s, `0`–`9` jump, `r` resume where you left off, `f` add/remove favorite, `x` stop, `dd` remove a queue entry or favorite, `esc` close.
 
 In the sounds screen: `↑↓`/`jk` move, `enter` turn a sound on/off, `←`/`→` volume, `p` pause/resume all sounds, `r` bring back your last mix, `x` all off, `esc` close.
 

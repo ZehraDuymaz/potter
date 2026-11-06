@@ -2,6 +2,7 @@
 
 #include <sys/types.h>
 
+#include <map>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -27,9 +28,23 @@ class MpvPlayer {
   // Whether mpv is installed.
   static bool available();
 
-  // Plays a URL or file, replacing what's playing. `title` is shown until
-  // mpv reports the real title. Returns false if mpv couldn't be started.
+  // Plays a URL or file now, in place of the current track; the tracks up
+  // next stay queued. `title` is shown until mpv reports the real title.
+  // YouTube playlist links expand into the queue. Returns false if mpv
+  // couldn't be started.
   bool play(const std::string& target, const std::string& title = "");
+  // Adds a track to the end of the queue, or plays it if nothing is playing.
+  bool enqueue(const std::string& target, const std::string& title = "");
+  // Plays the queue entry at `index`.
+  void play_index(int index);
+  // Removes the queue entry at `index` (the current one too: then the next plays).
+  void remove_index(int index);
+  // Removes every queue entry except the current one.
+  void clear_queue();
+  void next();
+  void previous();
+  // Off -> track -> queue -> off. Kept when mpv restarts.
+  LoopMode cycle_loop();
   void toggle_pause();
   void set_pause(bool paused);
   // Jumps in what's playing. While a file is still loading, the newest jump
@@ -50,6 +65,8 @@ class MpvPlayer {
   PlayerState state() const;
   // The best title to show for what's playing.
   std::string display_title() const;
+  // The best title to show for a queue entry.
+  std::string entry_title(const QueueEntry& entry) const;
   // True between play() and the moment mpv actually starts the file (for
   // YouTube links this includes yt-dlp's lookup, which takes a few seconds).
   bool loading() const;
@@ -61,9 +78,12 @@ class MpvPlayer {
   static std::string seek_command(double amount, const char* mode);
   void send(const std::vector<std::string>& command);
   void seek(double amount, const char* mode);
+  // Marks a new track as asked for, so loading() is true until it starts.
+  void begin_request(const std::string& target, const std::string& title);
   void io_loop(std::stop_token stop);
 
   int volume_;
+  LoopMode loop_ = LoopMode::Off;
   std::string extra_args_;
   std::string socket_path_;
   std::string script_path_;  // kWaitScript, written when mpv starts
@@ -73,6 +93,8 @@ class MpvPlayer {
   mutable std::mutex mutex_;
   PlayerState state_;
   std::string title_hint_;
+  // Titles potter knew when it queued a target (e.g. from search results).
+  std::map<std::string, std::string> known_titles_;
   bool requested_ = false;  // play() called, file not started yet
   int loaded_at_request_ = 0;
   struct PendingSeek {

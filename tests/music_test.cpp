@@ -122,6 +122,41 @@ static void follows_mpv_messages() {
   CHECK(s.idle);
 }
 
+static void follows_the_queue() {
+  PlayerState s;
+  CHECK(s.queue.empty());
+  CHECK(s.queue_pos == -1);
+  CHECK(s.loop() == LoopMode::Off);
+
+  // A YouTube playlist link, as mpv's ytdl hook expands it.
+  apply_mpv_message(s, R"({"event":"property-change","id":8,"name":"playlist","data":[)"
+                       R"({"filename":"https://www.youtube.com/watch?v=Ivpu1bDkZyU","current":true,"playing":true,"title":"Iowa","id":2},)"
+                       R"({"filename":"https://www.youtube.com/watch?v=fa9CzCWp1fE","title":"Life’s Short","id":3},)"
+                       R"({"filename":"/home/me/Music/song.mp3","id":4}]})");
+  apply_mpv_message(s, R"({"event":"property-change","id":9,"name":"playlist-pos","data":1})");
+  CHECK(s.queue.size() == 3);
+  CHECK(s.queue[0].title == "Iowa");
+  CHECK(s.queue[1].target == "https://www.youtube.com/watch?v=fa9CzCWp1fE");
+  CHECK(s.queue[2].title.empty());  // no title: the UI falls back to the path
+  CHECK(s.queue_pos == 1);
+
+  apply_mpv_message(s, R"({"event":"property-change","id":9,"name":"playlist-pos","data":-1})");
+  CHECK(s.queue_pos == -1);
+  apply_mpv_message(s, R"({"event":"property-change","id":8,"name":"playlist","data":[]})");
+  CHECK(s.queue.empty());
+
+  // Loop properties are "inf", a count, or false.
+  apply_mpv_message(s, R"({"event":"property-change","id":10,"name":"loop-file","data":"inf"})");
+  CHECK(s.loop() == LoopMode::Track);
+  apply_mpv_message(s, R"({"event":"property-change","id":10,"name":"loop-file","data":false})");
+  apply_mpv_message(s, R"({"event":"property-change","id":11,"name":"loop-playlist","data":"inf"})");
+  CHECK(s.loop() == LoopMode::Queue);
+  apply_mpv_message(s, R"({"event":"property-change","id":11,"name":"loop-playlist","data":3})");
+  CHECK(s.loop() == LoopMode::Queue);
+  apply_mpv_message(s, R"({"event":"property-change","id":11,"name":"loop-playlist","data":false})");
+  CHECK(s.loop() == LoopMode::Off);
+}
+
 static void manages_favorites() {
   const auto dir = std::filesystem::temp_directory_path() / "potter-music-test";
   std::filesystem::remove_all(dir);
@@ -229,6 +264,7 @@ int main() {
   parses_yt_dlp_lines();
   formats_clock();
   follows_mpv_messages();
+  follows_the_queue();
   manages_favorites();
   makes_track_keys();
   remembers_positions();

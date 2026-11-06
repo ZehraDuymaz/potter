@@ -37,6 +37,15 @@ std::optional<SearchResult> parse_search_line(std::string_view line);
 // 65 -> "1:05", 3723 -> "1:02:03".
 std::string format_clock(double seconds);
 
+// One entry of mpv's playlist, which is potter's queue.
+struct QueueEntry {
+  std::string target;  // URL or file, as mpv knows it
+  std::string title;   // empty until known (e.g. from a YouTube playlist)
+};
+
+// What repeats when a track ends.
+enum class LoopMode { Off, Track, Queue };
+
 // What mpv is doing, built from the messages on its control socket.
 struct PlayerState {
   bool connected = false;  // mpv is running and potter is talking to it
@@ -49,6 +58,16 @@ struct PlayerState {
   std::string path;   // what was loaded (URL or file)
   std::string error;  // why the last file failed to play, if it did
   int files_loaded = 0;  // counts mpv's file-loaded events
+  // mpv's playlist: tracks before the current one were played, tracks after
+  // it are up next.
+  std::vector<QueueEntry> queue;
+  int queue_pos = -1;  // index of the current track, -1 if none
+  bool loop_file = false;
+  bool loop_playlist = false;
+
+  LoopMode loop() const {
+    return loop_file ? LoopMode::Track : loop_playlist ? LoopMode::Queue : LoopMode::Off;
+  }
 
   bool playing() const { return connected && !idle && !paused; }
   bool has_media() const { return connected && !idle; }
