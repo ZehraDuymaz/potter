@@ -5,6 +5,11 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-11-13
+
+### Fixed
+- Closing the terminal window no longer loses the last changes (#11, thanks @tuna4ll). potter now saves and cleans up on SIGHUP the same way it does when you quit: the volume, the last seconds of focus time, the sound mix and resume points are kept, and mpv's socket files are removed.
+
 ## [0.8.0] - 2026-11-06
 
 ### Added
