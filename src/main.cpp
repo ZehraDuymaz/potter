@@ -45,6 +45,9 @@ int main(int argc, char** argv) {
   // If mpv dies while potter is sending it a command, the write should just
   // fail instead of killing potter with SIGPIPE.
   signal(SIGPIPE, SIG_IGN);
+  // Closing the terminal sends SIGHUP. FTXUI only turns SIGTERM into a clean
+  // exit, so forward it there and potter still saves and cleans up.
+  signal(SIGHUP, [](int) { raise(SIGTERM); });
 
   const auto path = potter::config_path();
   std::string error;
