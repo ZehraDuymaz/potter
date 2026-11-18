@@ -109,3 +109,11 @@ add_test(NAME music_test COMMAND music_test)
 add_executable(sounds_test tests/sounds_test.cpp)
 target_link_libraries(sounds_test PRIVATE potter_core)
 add_test(NAME sounds_test COMMAND sounds_test)
+
+add_executable(config_test tests/config_test.cpp)
+target_link_libraries(config_test PRIVATE potter_core)
+add_test(NAME config_test COMMAND config_test)
+
+add_executable(storage_test tests/storage_test.cpp)
+target_link_libraries(storage_test PRIVATE potter_core)
+add_test(NAME storage_test COMMAND storage_test)

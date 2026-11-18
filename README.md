@@ -185,7 +185,9 @@ potter/
 │   ├── tasks_test.cpp
 │   ├── history_test.cpp
 │   ├── music_test.cpp
-│   └── sounds_test.cpp
+│   ├── sounds_test.cpp
+│   ├── config_test.cpp
+│   └── storage_test.cpp
 ├── sounds/                    # the sound recordings, downloaded by potter on first use
 ├── packaging/
 │   ├── build-static.sh        # fully static Linux build (Alpine/musl, run via Docker)
