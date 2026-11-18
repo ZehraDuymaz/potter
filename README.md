@@ -12,34 +12,54 @@ potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, strea
 
 ---
 
-## Why Potter 
-I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where I can basically search in YouTube and play things using yt-dlp and mpv. And I think it is one of the most amazing things in my computer. Definitely not exaggerating. Moreover, I split my terminal and open cava and it is an amazing pleasure. And I also love using blanket and termdown and also a nice todos thingy. So, I thought what if we can combine these all to a single terminal app. 
+## Install
 
-## Goals
+### macOS (or Linux) with Homebrew
 
-- **Light.** potter is a small native program that barely touches your CPU and uses only a few MB of memory. Music plays through mpv, which needs more while it's playing, but the whole thing still stays far lighter than a browser tab.
-- **Fits into a riced environment.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
-- **Keyboard-first.** Every action has a key, and the mouse is optional.
-- **Local only.** No accounts and no network, except for music you choose to play and each sound recording, which is downloaded once the first time you turn it on.
-- **Accurate time.** The countdown is based on end times measured with `CLOCK_BOOTTIME`, not on counting ticks, so it doesn't drift and keeps counting while the laptop sleeps.
+```sh
+brew install zehraduymaz/tap/potter
+brew install mpv yt-dlp   # optional, for music
+```
+
+Update with `brew upgrade potter`. On macOS, notifications use the system's own (no `notify-send` needed).
+
+### Arch Linux (AUR)
+
+Coming soon as `potter` (builds from source) and `potter-bin` (the static release binary) — AUR sign-ups are closed for now.
+
+### Any Linux: download a release
+
+The release binaries are **fully static**: one file that runs on any 64-bit Linux distro — Arch, Debian, Ubuntu, Fedora, openSUSE, old or new — for both **x86_64** and **ARM64** (e.g. Raspberry Pi), with nothing else to install.
+
+```sh
+# downloads the newest release for your CPU (x86_64 or aarch64)
+curl -L "https://github.com/ZehraDuymaz/potter/releases/latest/download/potter-linux-$(uname -m).tar.gz" | tar -xz
+install -Dm755 "potter-linux-$(uname -m)/potter" ~/.local/bin/potter
+potter --version
+```
+
+Make sure `~/.local/bin` is on your `PATH`. To update, run the same commands again. Music still needs `mpv` (and `yt-dlp` for YouTube) from your distro's packages.
+
+You can also download the files by hand from the [Releases page](https://github.com/ZehraDuymaz/potter/releases); each one comes with a `.sha256` checksum.
+
+### Windows (WSL)
+
+potter doesn't run natively on Windows yet, but it works in [WSL](https://learn.microsoft.com/windows/wsl/install) (Windows Subsystem for Linux). Open your WSL terminal (e.g. Ubuntu) and run the "Any Linux" install commands above. For music, install `mpv` and `yt-dlp` inside WSL; sound works out of the box on Windows 11.
+
+### From source
+
+See [Build from source](#build-from-source) below.
 
 ## Features
 
-### v0.1: Timer and settings ✅
+### Timer
 
 - Focus, short break and long break phases. The defaults are 25, 5 and 15 minutes, with a long break after every 4 focus sessions.
 - A big centered countdown, a phase label, a session counter (e.g. `● ● ○ ○`) and a progress bar.
 - Start, pause, reset and skip-phase controls.
-- A settings screen inside the app for:
-  - focus, short break and long break lengths
-  - how many sessions come before a long break
-  - auto-starting breaks and focus sessions
-  - desktop notifications (`notify-send`) and a terminal bell when a phase ends
-  - the color scheme: terminal palette (default) or custom hex colors
-- Settings are saved to `~/.config/potter/config.toml`, and you can edit that file by hand too.
-- The background is transparent: potter never paints one.
+- Desktop notifications (`notify-send`, or the system's own on macOS) and a terminal bell when a phase ends.
 
-### v0.2: Tasks ✅
+### Tasks
 
 - A to-do list beside the timer that you can add to, rename, complete, reorder and delete.
 - One level of subtasks.
@@ -47,41 +67,35 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - Per-task time tracking, with subtasks' time rolled up into their parent.
 - Tasks are saved to `~/.local/share/potter/tasks.toml`, at least every 30 seconds while the timer runs and whenever you change something.
 
-### v0.3: Streaks and goals ✅
+### Goals, streaks and history
 
 - A daily focus goal in minutes (default 1h 40m, i.e. 4 × 25 min). Every focused minute counts, with or without an active task.
 - Today's progress and your streak under the timer: `45m / 1h 40m today · 🔥 5`, plus a notification when you reach the goal.
 - A streak counts consecutive days that met their goal. Today doesn't break it while it's still in progress.
 - A new day starts at 4 AM by default (adjustable), so late-night focus counts for the day before.
-- A history view (`h`): a vertical bar chart of the last 14 days with the goal line, current and best streak, and totals.
+- A history screen (`h`): a vertical bar chart of the last 14 days with the goal line, current and best streak, and totals.
+- Your history remembers **which task** your focus went to, even after you finish, rename or delete the task. `←`/`→` picks a day in the chart and shows where that day's focus went, task by task (plus "no task" time).
+- A second tab (`tab`) shows focus totals per task for the last 7 days, 30 days or all time (`r` to switch), with each task's status: active, open, done or deleted. Select a task and press `dd` to remove its time from your history, which is handy for test runs.
 - History is saved to `~/.local/share/potter/history.toml`.
 
-### v0.4: Music ✅
+### Music
 
 - A music screen (`m`) with one box for everything: type words to **search YouTube** (top 5 results, pick one with enter), paste a **link** to play it, or type a **file or folder path** (`~/Music/...`) to play local music.
 - Playback runs through `mpv` in the background (audio only), controlled by potter. YouTube needs `yt-dlp`.
 - Now playing under the timer: the title, `⏸ 1:23 / 4:05` and a progress bar.
 - Play/pause with `p` and volume with `+`/`-` from anywhere; the volume is remembered.
+- `←`/`→` jump back/forward 10 seconds, and `0`–`9` jump to 0%–90% of the track, like on YouTube. Works on the timer screen and in the music screen.
+- **Resume:** potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 · press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered. Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
 - **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
+- **Queue:** press `e` on a search result or favorite to play it after the current track (or `tab` instead of `enter` to queue a link or path you typed). The queue shows in the music screen: `enter` plays an entry, `dd` removes it, `c` clears what's up next. Playing something with `enter` while a queue exists replaces just the current track; the rest of the queue stays.
+- `<` / `>` go to the previous / next track, in the music screen and on the timer screen.
+- **Loop:** `l` cycles through loop off → loop this track → loop the queue. Kept until you quit potter.
+- **YouTube playlists:** paste a playlist link and all of its tracks go into the queue. A link to a video inside a playlist (`watch?v=…&list=…`) plays the whole playlist, starting at that video.
 - Music pauses during breaks and resumes when focus starts (a setting, on by default). Pausing or playing by hand always wins.
 - Music stops when you quit potter.
 - potter's mpv doesn't read your own mpv config (`~/.config/mpv`), so settings meant for videos can't break music. To configure it, write an `mpv.conf` in `~/.config/potter/mpv/` (same format as mpv's). Add `include=~/.config/mpv/mpv.conf` there to reuse your own config.
 
-### v0.5: Task history ✅
-
-- Your history now remembers **which task** your focus went to — even after you finish, rename or delete the task.
-- In the history screen (`h`), `←`/`→` picks a day in the chart and shows where that day's focus went, task by task (plus "no task" time).
-- A second tab (`tab`) shows focus totals per task for the last 7 days, 30 days or all time (`r` to switch), with each task's status: active, open, done or deleted.
-- Days recorded before v0.5 keep their totals but have no per-task details.
-- Since v0.5.1: select a task in the totals tab and press `dd` to remove its time from your history — handy for test runs. Its time also comes off those days' totals.
-
-### v0.6: Seek and resume ✅
-
-- `←`/`→` jump back/forward 10 seconds, and `0`–`9` jump to 0%–90% of the track, like on YouTube. Works on the timer screen and in the music screen.
-- potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 · press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered.
-- Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
-
-### v0.7: Sounds ✅
+### Sounds
 
 - A sounds screen (`b`) with background sounds like in [Blanket](https://github.com/rafaelmardojai/blanket): rain, storm, wind, waves, stream, birds, summer night, fireplace, coffee shop, city, train and boat, plus white, pink and brown noise.
 - Mix as many as you like, each with its own volume (`←`/`→`). They play next to your music.
@@ -92,19 +106,18 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - `B` pauses and resumes just the sounds from the timer screen; the music keeps playing (and `p` still pauses only the music).
 - Credits for the recordings: [SOUNDS.md](SOUNDS.md).
 
-### v0.8: Queue, loop and playlists ✅
+### Settings and look
 
-- **Queue:** press `e` on a search result or favorite to play it after the current track (or `tab` instead of `enter` to queue a link or path you typed). The queue shows in the music screen: `enter` plays an entry, `dd` removes it, `c` clears what's up next.
-- `<` / `>` go to the previous / next track, in the music screen and on the timer screen.
-- **Loop:** `l` cycles through loop off → loop this track → loop the queue. Kept until you quit potter.
-- **YouTube playlists:** paste a playlist link and all of its tracks go into the queue. A link to a video inside a playlist (`watch?v=…&list=…`) plays the whole playlist, starting at that video.
-- Playing something with `enter` while a queue exists replaces just the current track; the rest of the queue stays.
-
-### Later ideas
-
-- Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
-- Control from scripts or keybinds (`potter toggle`, `potter skip`) through a small local socket.
-- A compact mode for a tiny floating terminal window (Hyprland float rule), which works like picture-in-picture.
+- A settings screen (`s`) inside the app for:
+  - focus, short break and long break lengths
+  - how many sessions come before a long break
+  - the daily focus goal and the hour a new day starts
+  - auto-starting breaks and focus sessions
+  - desktop notifications and the terminal bell
+  - pausing music and sounds during breaks
+  - the color scheme: terminal palette (default) or custom hex colors
+- Settings are saved to `~/.config/potter/config.toml`, and you can edit that file by hand too.
+- The background is transparent: potter never paints one.
 
 ## Keybindings
 
@@ -136,6 +149,96 @@ In the music screen: `/` search or paste a link/path (`enter` plays it, `tab` qu
 In the sounds screen: `↑↓`/`jk` move, `enter` turn a sound on/off, `←`/`→` volume, `p` pause/resume all sounds, `r` bring back your last mix, `x` all off, `esc` close.
 
 In settings: `↑↓`/`jk` move, `←→`/`hl` change (`H`/`L` ±5), `enter` toggle or edit a color, `esc` save and close.
+
+## Why Potter 
+I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where I can basically search in YouTube and play things using yt-dlp and mpv. And I think it is one of the most amazing things in my computer. Definitely not exaggerating. Moreover, I split my terminal and open cava and it is an amazing pleasure. And I also love using blanket and termdown and also a nice todos thingy. So, I thought what if we can combine these all to a single terminal app. 
+
+## Goals
+
+- **Light.** potter is a small native program that barely touches your CPU and uses only a few MB of memory. Music plays through mpv, which needs more while it's playing, but the whole thing still stays far lighter than a browser tab.
+- **Fits into a riced environment.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
+- **Keyboard-first.** Every action has a key, and the mouse is optional.
+- **Local only.** No accounts and no network, except for music you choose to play and each sound recording, which is downloaded once the first time you turn it on.
+- **Accurate time.** The countdown is based on end times measured with `CLOCK_BOOTTIME`, not on counting ticks, so it doesn't drift and keeps counting while the laptop sleeps.
+
+## Troubleshooting
+
+### Music doesn't play (or plays silently)
+
+potter's mpv doesn't read your own mpv config (`~/.config/mpv`), only `~/.config/potter/mpv/`, so your video settings can't get in the way. If you added `include=~/.config/mpv/mpv.conf` there, try removing it first.
+
+**Common culprits in an mpv.conf:**
+
+| Setting | What happens in potter |
+| --- | --- |
+| `mute=yes` | everything plays, but silently |
+| `ytdl=no` | YouTube links and search results don't play |
+| `script-opts=ytdl_hook-ytdl_path=youtube-dl` | YouTube fails if it points to the old `youtube-dl` — point it to `yt-dlp` or remove it |
+| `audio-device=...` | no sound if that device isn't connected |
+
+`no-audio` can't break it: potter always turns audio back on.
+
+**Check mpv itself.** If this doesn't play in a normal terminal either, the problem is mpv or yt-dlp, not potter:
+
+```sh
+mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"
+```
+
+Extra mpv options go in `~/.config/potter/config.toml`, e.g. `mpv_args = "--audio-device=auto"` under `[music]`. Run `mpv --audio-device=help` to list your devices.
+
+### YouTube says "couldn't play this: no audio or video data played"
+
+YouTube sometimes refuses the audio link yt-dlp hands to mpv (HTTP error 403). potter retries for a few seconds, which fixes the usual case. If it still fails, update yt-dlp (below): YouTube changes often and yt-dlp catches up quickly. To see mpv's real error, run it yourself:
+
+```sh
+mpv --no-video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+```
+
+### YouTube search shows "search failed"
+
+YouTube changes often, and an old `yt-dlp` stops working. Update it (`sudo pacman -Syu yt-dlp`, `brew upgrade yt-dlp`, or `yt-dlp -U` if you installed it yourself).
+
+## Build from source
+
+### Requirements
+
+- Linux or macOS
+- A C++20 compiler (GCC 11+ or Clang 14+) and CMake 3.20+
+- Internet access for the first build (CMake downloads FTXUI, and toml++ / nlohmann-json if they aren't installed)
+- Optional: `notify-send` (libnotify) for desktop notifications
+- Optional: `mpv` for music and sounds, plus `yt-dlp` for YouTube and `curl` to download sounds
+
+On Arch / CachyOS:
+
+```sh
+sudo pacman -S --needed base-devel cmake libnotify tomlplusplus nlohmann-json mpv yt-dlp
+```
+
+On Debian / Ubuntu:
+
+```sh
+sudo apt install build-essential cmake libnotify-bin mpv yt-dlp
+```
+
+### Build and run
+
+```sh
+git clone https://github.com/ZehraDuymaz/potter.git
+cd potter
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+./build/potter
+
+# run the tests
+ctest --test-dir build
+
+# install to ~/.local/bin
+cmake --install build --prefix ~/.local
+```
+
+The first configure downloads FTXUI (and toml++ if it isn't installed), so it needs internet once.
+
+Built with the help of Claude Code. I designed the features, tested and released it, and I'm learning C++ through it.
 
 ## Tech choices
 
@@ -201,116 +304,11 @@ potter/
 
 Everything in `core/` is free of UI and system code, so the logic can be tested on its own. Includes are written from `src/`, e.g. `#include "core/timer.hpp"`.
 
-## Requirements
+## Roadmap
 
-- Linux or macOS
-- A C++20 compiler (GCC 11+ or Clang 14+) and CMake 3.20+
-- Internet access for the first build (CMake downloads FTXUI, and toml++ / nlohmann-json if they aren't installed)
-- Optional: `notify-send` (libnotify) for desktop notifications
-- Optional: `mpv` for music and sounds, plus `yt-dlp` for YouTube and `curl` to download sounds
-
-On Arch / CachyOS:
-
-```sh
-sudo pacman -S --needed base-devel cmake libnotify tomlplusplus nlohmann-json mpv yt-dlp
-```
-
-On Debian / Ubuntu:
-
-```sh
-sudo apt install build-essential cmake libnotify-bin mpv yt-dlp
-```
-
-## Install
-
-### macOS (or Linux) with Homebrew
-
-```sh
-brew install zehraduymaz/tap/potter
-brew install mpv yt-dlp   # optional, for music
-```
-
-Update with `brew upgrade potter`. On macOS, notifications use the system's own (no `notify-send` needed).
-
-### Arch Linux (AUR)
-
-Coming soon as `potter` (builds from source) and `potter-bin` (the static release binary) — AUR sign-ups are closed for now.
-
-### Any Linux: download a release
-
-The release binaries are **fully static**: one file that runs on any 64-bit Linux distro — Arch, Debian, Ubuntu, Fedora, openSUSE, old or new — for both **x86_64** and **ARM64** (e.g. Raspberry Pi), with nothing else to install.
-
-```sh
-# downloads the newest release for your CPU (x86_64 or aarch64)
-curl -L "https://github.com/ZehraDuymaz/potter/releases/latest/download/potter-linux-$(uname -m).tar.gz" | tar -xz
-install -Dm755 "potter-linux-$(uname -m)/potter" ~/.local/bin/potter
-potter --version
-```
-
-Make sure `~/.local/bin` is on your `PATH`. To update, run the same commands again. Music still needs `mpv` (and `yt-dlp` for YouTube) from your distro's packages.
-
-You can also download the files by hand from the [Releases page](https://github.com/ZehraDuymaz/potter/releases); each one comes with a `.sha256` checksum.
-
-### Windows (WSL)
-
-potter doesn't run natively on Windows yet, but it works in [WSL](https://learn.microsoft.com/windows/wsl/install) (Windows Subsystem for Linux). Open your WSL terminal (e.g. Ubuntu) and run the "Any Linux" install commands above. For music, install `mpv` and `yt-dlp` inside WSL; sound works out of the box on Windows 11.
-
-## Build and run
-
-```sh
-git clone https://github.com/ZehraDuymaz/potter.git
-cd potter
-cmake -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-./build/potter
-
-# run the tests
-ctest --test-dir build
-
-# install to ~/.local/bin
-cmake --install build --prefix ~/.local
-```
-
-The first configure downloads FTXUI (and toml++ if it isn't installed), so it needs internet once.
-
-Built with the help of Claude Code. I designed the features, tested and released it, and I'm learning C++ through it.
-
-## Troubleshooting
-
-### Music doesn't play (or plays silently)
-
-potter's mpv doesn't read your own mpv config (`~/.config/mpv`), only `~/.config/potter/mpv/`, so your video settings can't get in the way. If you added `include=~/.config/mpv/mpv.conf` there, try removing it first.
-
-**Common culprits in an mpv.conf:**
-
-| Setting | What happens in potter |
-| --- | --- |
-| `mute=yes` | everything plays, but silently |
-| `ytdl=no` | YouTube links and search results don't play |
-| `script-opts=ytdl_hook-ytdl_path=youtube-dl` | YouTube fails if it points to the old `youtube-dl` — point it to `yt-dlp` or remove it |
-| `audio-device=...` | no sound if that device isn't connected |
-
-`no-audio` can't break it: potter always turns audio back on.
-
-**Check mpv itself.** If this doesn't play in a normal terminal either, the problem is mpv or yt-dlp, not potter:
-
-```sh
-mpv --no-config --no-video "https://www.youtube.com/watch?v=JCKBaJDRMw4"
-```
-
-Extra mpv options go in `~/.config/potter/config.toml`, e.g. `mpv_args = "--audio-device=auto"` under `[music]`. Run `mpv --audio-device=help` to list your devices.
-
-### YouTube says "couldn't play this: no audio or video data played"
-
-YouTube sometimes refuses the audio link yt-dlp hands to mpv (HTTP error 403). potter retries for a few seconds, which fixes the usual case. If it still fails, update yt-dlp (below): YouTube changes often and yt-dlp catches up quickly. To see mpv's real error, run it yourself:
-
-```sh
-mpv --no-video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-```
-
-### YouTube search shows "search failed"
-
-YouTube changes often, and an old `yt-dlp` stops working. Update it (`sudo pacman -Syu yt-dlp`, `brew upgrade yt-dlp`, or `yt-dlp -U` if you installed it yourself).
+- Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
+- Control from scripts or keybinds (`potter toggle`, `potter skip`) through a small local socket.
+- A compact mode for a tiny floating terminal window (Hyprland float rule), which works like picture-in-picture.
 
 ## Contributing
 
