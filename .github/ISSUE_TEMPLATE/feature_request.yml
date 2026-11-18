@@ -1,0 +1,16 @@
+name: Idea or feature request
+description: Suggest something new for potter
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What would you like potter to do, and why would it help you?
+    validations:
+      required: true
+  - type: textarea
+    id: how
+    attributes:
+      label: How it could work
+      description: Optional. Keys, screens or settings you have in mind.

@@ -4,7 +4,7 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that's much lighter than a browser tab.
 
-> Status: **v0.5** — timer, settings, tasks, daily goal, streaks, music and per-task history work.
+> Status: **v0.8** — timer, settings, tasks, daily goal, streaks, music and per-task history work.
 
 ---
 
@@ -20,7 +20,7 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - **Light.** potter is a small native program that barely touches your CPU and uses only a few MB of memory. Music plays through mpv, which needs more while it's playing, but the whole thing still stays far lighter than a browser tab.
 - **Fits into a riced environment.** The background stays transparent, so your terminal's opacity and blur show through. Colors come from the terminal palette by default, so pywal or matugen themes (Noctalia, for example) apply automatically.
 - **Keyboard-first.** Every action has a key, and the mouse is optional.
-- **Local only.** No accounts and no network, except for music you choose to play.
+- **Local only.** No accounts and no network, except for music you choose to play and each sound recording, which is downloaded once the first time you turn it on.
 - **Accurate time.** The countdown is based on end times measured with `CLOCK_BOOTTIME`, not on counting ticks, so it doesn't drift and keeps counting while the laptop sleeps.
 
 ## Features
@@ -105,7 +105,6 @@ I use CachyOS + Hyprland + Noctalia Setup and I have a nice ytplay command where
 - Waybar or Noctalia bar integration, via a `potter status` command that prints the remaining time as JSON.
 - Control from scripts or keybinds (`potter toggle`, `potter skip`) through a small local socket.
 - A compact mode for a tiny floating terminal window (Hyprland float rule), which works like picture-in-picture.
-- Packaging for the AUR.
 
 ## Keybindings
 
@@ -193,9 +192,9 @@ potter/
 │   ├── update-packages.sh     # points the AUR files at a new release
 │   ├── update-formula.sh      # points the Homebrew formula at a release
 │   └── aur/                   # PKGBUILDs: potter (from source), potter-bin
+├── CONTRIBUTING.md            # how to build, test and send a pull request
 ├── RELEASING.md               # release checklist
-├── SOUNDS.md                  # credits and licenses for the sounds
-└── docs/
+└── SOUNDS.md                  # credits and licenses for the sounds
 ```
 
 Everything in `core/` is free of UI and system code, so the logic can be tested on its own. Includes are written from `src/`, e.g. `#include "core/timer.hpp"`.
@@ -310,6 +309,10 @@ mpv --no-video "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
 ### YouTube search shows "search failed"
 
 YouTube changes often, and an old `yt-dlp` stops working. Update it (`sudo pacman -Syu yt-dlp`, `brew upgrade yt-dlp`, or `yt-dlp -U` if you installed it yourself).
+
+## Contributing
+
+Bug reports, ideas and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to build, test and send a pull request.
 
 ## License
 

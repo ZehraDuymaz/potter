@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in potter doesn't work as it should
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: potter version
+      description: The output of `potter --version`.
+      placeholder: potter 0.8.1
+    validations:
+      required: true
+  - type: input
+    id: system
+    attributes:
+      label: OS and terminal
+      placeholder: Arch Linux, kitty
+    validations:
+      required: true
+  - type: textarea
+    id: music
+    attributes:
+      label: For music or sound problems
+      description: The output of `mpv --version` and `yt-dlp --version`, and whether the commands in the README's Troubleshooting section work.
