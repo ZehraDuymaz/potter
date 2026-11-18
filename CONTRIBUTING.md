@@ -51,9 +51,9 @@ Each module in `src/core/` has its own test program in `tests/` (e.g. `tests/tas
 
 ## Code style
 
-There is no formatter config yet, so please match the code around your change:
+The repo has a `.clang-format` (Google style, 100-character lines) and an `.editorconfig`, which most editors pick up on their own. To format only the lines you changed, run `git clang-format` before committing. Beyond what the formatter does:
 
-- C++20, 2-space indentation, lines up to about 100 characters
+- C++20, 2-space indentation, lines up to 100 characters
 - `#pragma once` in headers, and includes written from `src/` (`#include "core/timer.hpp"`)
 - RAII: no raw `new` / `delete`, and `std::chrono` for all time math
 - private members end in an underscore (`status_`)

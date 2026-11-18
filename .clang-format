@@ -1,0 +1,11 @@
+# potter's C++ style: Google style with 100-character lines.
+# Format a file with: clang-format -i src/app.cpp
+BasedOnStyle: Google
+ColumnLimit: 100
+# Keep the include groups as written: standard library, then libraries
+# (FTXUI, toml++), then potter's own headers. Each group is still sorted.
+IncludeBlocks: Preserve
+# Allow `case View::Help: body = ui::help_view(); break;` on one line.
+AllowShortCaseLabelsOnASingleLine: true
+# Short member functions may stay on one line; free functions get a body.
+AllowShortFunctionsOnASingleLine: Inline
