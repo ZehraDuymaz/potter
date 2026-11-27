@@ -23,7 +23,24 @@ std::string trim(std::string s) {
   return s;
 }
 
+Priority parse_priority(const std::string& name) {
+  if (name == "low") return Priority::Low;
+  if (name == "medium") return Priority::Medium;
+  if (name == "high") return Priority::High;
+  return Priority::None;
+}
+
 }  // namespace
+
+const char* priority_name(Priority priority) {
+  switch (priority) {
+    case Priority::Low: return "low";
+    case Priority::Medium: return "medium";
+    case Priority::High: return "high";
+    case Priority::None: break;
+  }
+  return "none";
+}
 
 TaskId TaskList::add(std::string title, TaskId parent) {
   title = trim(std::move(title));
@@ -71,13 +88,16 @@ bool TaskList::toggle_done(TaskId id) {
   return true;
 }
 
-bool TaskList::move(TaskId id, int direction) {
-  const auto it = std::find_if(tasks_.begin(), tasks_.end(),
-                               [id](const Task& t) { return t.id == id; });
+bool TaskList::move(TaskId id, int direction, bool same_priority) {
+  const auto it =
+      std::find_if(tasks_.begin(), tasks_.end(), [id](const Task& t) { return t.id == id; });
   if (it == tasks_.end() || direction == 0) return false;
 
   const TaskId parent = it->parent;
-  const auto same_parent = [parent](const Task& t) { return t.parent == parent; };
+  const Priority priority = it->priority;
+  const auto same_parent = [=](const Task& t) {
+    return t.parent == parent && (!same_priority || t.priority == priority);
+  };
 
   if (direction < 0) {
     const auto rit = std::find_if(std::make_reverse_iterator(it), tasks_.rend(), same_parent);
@@ -90,6 +110,24 @@ bool TaskList::move(TaskId id, int direction) {
   }
   dirty_ = true;
   return true;
+}
+
+bool TaskList::set_priority(TaskId id, Priority priority) {
+  Task* task = find_mut(id);
+  if (!task) return false;
+  if (task->priority != priority) {
+    task->priority = priority;
+    dirty_ = true;
+  }
+  return true;
+}
+
+bool TaskList::cycle_priority(TaskId id, int direction) {
+  const Task* task = find(id);
+  if (!task || direction == 0) return false;
+  constexpr int kLevels = 4;
+  const int next = (static_cast<int>(task->priority) + (direction > 0 ? 1 : kLevels - 1)) % kLevels;
+  return set_priority(id, static_cast<Priority>(next));
 }
 
 void TaskList::add_focus(TaskId id, std::chrono::nanoseconds amount) {
@@ -119,22 +157,31 @@ std::chrono::nanoseconds TaskList::total_focus(TaskId id) const {
   return total;
 }
 
-std::vector<TaskRow> TaskList::rows() const {
+std::vector<TaskRow> TaskList::rows(bool by_priority) const {
+  const auto children = [&](TaskId parent) {
+    std::vector<const Task*> out;
+    for (const Task& t : tasks_) {
+      if (t.parent == parent) out.push_back(&t);
+    }
+    if (by_priority) {
+      std::stable_sort(out.begin(), out.end(),
+                       [](const Task* a, const Task* b) { return a->priority > b->priority; });
+    }
+    return out;
+  };
+
   std::vector<TaskRow> rows;
   rows.reserve(tasks_.size());
-  for (const Task& top : tasks_) {
-    if (top.parent != 0) continue;
-    rows.push_back({&top, 0});
-    for (const Task& sub : tasks_) {
-      if (sub.parent == top.id) rows.push_back({&sub, 1});
-    }
+  for (const Task* top : children(0)) {
+    rows.push_back({top, 0});
+    for (const Task* sub : children(top->id)) rows.push_back({sub, 1});
   }
   return rows;
 }
 
 int TaskList::count_done() const {
-  return static_cast<int>(std::count_if(tasks_.begin(), tasks_.end(),
-                                        [](const Task& t) { return t.done; }));
+  return static_cast<int>(
+      std::count_if(tasks_.begin(), tasks_.end(), [](const Task& t) { return t.done; }));
 }
 
 void TaskList::set_active(TaskId id) {
@@ -168,6 +215,7 @@ bool TaskList::load(const std::filesystem::path& path, std::string* error) {
       if (task.id == 0 || task.title.empty()) continue;
       task.parent = static_cast<TaskId>((*t)["parent"].value_or(int64_t{0}));
       task.done = (*t)["done"].value_or(false);
+      task.priority = parse_priority((*t)["priority"].value_or(std::string()));
       task.focus = std::chrono::seconds((*t)["focus_seconds"].value_or(int64_t{0}));
       max_id = std::max(max_id, task.id);
       loaded.push_back(std::move(task));
@@ -180,8 +228,8 @@ bool TaskList::load(const std::filesystem::path& path, std::string* error) {
     const Task* p = find(t.parent);
     if (!p || p->parent != 0 || p->id == t.id) t.parent = 0;
   }
-  next_id_ = std::max<TaskId>(max_id + 1,
-                              static_cast<TaskId>(root["next_id"].value_or(int64_t{1})));
+  next_id_ =
+      std::max<TaskId>(max_id + 1, static_cast<TaskId>(root["next_id"].value_or(int64_t{1})));
   active_ = 0;
   set_active(static_cast<TaskId>(root["active"].value_or(int64_t{0})));
   dirty_ = false;
@@ -196,6 +244,7 @@ bool TaskList::save(const std::filesystem::path& path, std::string* error) {
         {"parent", static_cast<int64_t>(t.parent)},
         {"title", t.title},
         {"done", t.done},
+        {"priority", priority_name(t.priority)},
         {"focus_seconds",
          static_cast<int64_t>(std::chrono::duration_cast<std::chrono::seconds>(t.focus).count())},
     });

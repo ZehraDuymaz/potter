@@ -23,6 +23,7 @@ enum Row {
   kDesktop,
   kBell,
   kMusicBreaks,
+  kPriorities,
   kTheme,
   kFocusColor,
   kShortColor,
@@ -43,6 +44,7 @@ const char* row_label(int row) {
     case kDesktop: return "Desktop notifications";
     case kBell: return "Terminal bell";
     case kMusicBreaks: return "Pause audio during breaks";
+    case kPriorities: return "Task priorities";
     case kTheme: return "Colors";
     case kFocusColor: return "Focus color";
     case kShortColor: return "Short break color";
@@ -100,8 +102,7 @@ bool SettingsMenu::handle(const Event& event) {
       if (!edit_buffer_.empty()) edit_buffer_.pop_back();
     } else if (event.is_character() && event.character().size() == 1) {
       const char c = event.character()[0];
-      if ((std::isxdigit(static_cast<unsigned char>(c)) || c == '#') &&
-          edit_buffer_.size() < 7) {
+      if ((std::isxdigit(static_cast<unsigned char>(c)) || c == '#') && edit_buffer_.size() < 7) {
         edit_buffer_ += c;
       }
     }
@@ -145,7 +146,7 @@ void SettingsMenu::adjust(int delta) {
     case kDayStart: draft_.day_start_hour = std::clamp(draft_.day_start_hour + delta, 0, 12); break;
     case kFocusColor:
     case kShortColor:
-    case kLongColor: break;  // edited as text, not stepped
+    case kLongColor: break;      // edited as text, not stepped
     default: activate(); break;  // toggles flip either way
   }
 }
@@ -157,9 +158,9 @@ void SettingsMenu::activate() {
     case kDesktop: draft_.desktop_notifications ^= true; break;
     case kBell: draft_.terminal_bell ^= true; break;
     case kMusicBreaks: draft_.pause_music_on_breaks ^= true; break;
+    case kPriorities: draft_.task_priorities ^= true; break;
     case kTheme:
-      draft_.theme =
-          draft_.theme == ThemeMode::Terminal ? ThemeMode::Custom : ThemeMode::Terminal;
+      draft_.theme = draft_.theme == ThemeMode::Terminal ? ThemeMode::Custom : ThemeMode::Terminal;
       break;
     case kFocusColor:
     case kShortColor:
@@ -175,9 +176,7 @@ void SettingsMenu::activate() {
 
 Element SettingsMenu::render() const {
   auto on_off = [](bool v) { return std::string(v ? "on" : "off"); };
-  auto minutes = [](std::chrono::minutes m) {
-    return "‹ " + std::to_string(m.count()) + " min ›";
-  };
+  auto minutes = [](std::chrono::minutes m) { return "‹ " + std::to_string(m.count()) + " min ›"; };
   const auto& timer = draft_.timer;
   const bool custom = draft_.theme == ThemeMode::Custom;
 
@@ -205,6 +204,7 @@ Element SettingsMenu::render() const {
       case kDesktop: value = text(on_off(draft_.desktop_notifications)); break;
       case kBell: value = text(on_off(draft_.terminal_bell)); break;
       case kMusicBreaks: value = text(on_off(draft_.pause_music_on_breaks)); break;
+      case kPriorities: value = text(on_off(draft_.task_priorities)); break;
       case kTheme: value = text(custom ? "custom" : "terminal palette"); break;
       default: {
         const std::string& hex = *color_field(draft_, row);
@@ -220,7 +220,8 @@ Element SettingsMenu::render() const {
     Element line = hbox({text(row_label(row)) | size(WIDTH, EQUAL, 30), value});
     if (row == selected_) line = line | inverted;
     rows.push_back(line);
-    if (row == kSessions || row == kDayStart || row == kAutoFocus || row == kMusicBreaks) {
+    if (row == kSessions || row == kDayStart || row == kAutoFocus || row == kMusicBreaks ||
+        row == kPriorities) {
       rows.push_back(text(""));
     }
   }
@@ -229,10 +230,9 @@ Element SettingsMenu::render() const {
   if (!error_.empty()) {
     rows.push_back(text(error_) | color(Color::Red));
   } else if (editing_) {
-    rows.push_back(text("type a hex color · enter confirm · esc cancel") | dim);
+    rows.push_back(text("type a hex color - enter confirm - esc cancel") | dim);
   } else {
-    rows.push_back(text("↑↓ move · ←→ change (H/L ±5) · enter toggle/edit · esc save") |
-                   dim);
+    rows.push_back(text("↑↓ move - ←→ change (H/L ±5) - enter toggle/edit - esc save") | dim);
   }
 
   return vbox({text("Settings") | bold | hcenter, separator(), vbox(std::move(rows))}) |

@@ -19,9 +19,9 @@ static int failures = 0;
     }                                                                      \
   } while (0)
 
-static std::vector<std::string> titles(const TaskList& list) {
+static std::vector<std::string> titles(const TaskList& list, bool by_priority = false) {
   std::vector<std::string> out;
-  for (const TaskRow& row : list.rows()) {
+  for (const TaskRow& row : list.rows(by_priority)) {
     out.push_back(std::string(row.depth, '-') + row.task->title);
   }
   return out;
@@ -32,7 +32,7 @@ static void adds_tasks_and_subtasks() {
   const TaskId a = list.add("  write report  ");
   const TaskId b = list.add("study");
   const TaskId a1 = list.add("outline", a);
-  CHECK(list.add("   ") == 0);  // blank titles are ignored
+  CHECK(list.add("   ") == 0);                   // blank titles are ignored
   CHECK(list.find(a)->title == "write report");  // trimmed
   // A subtask of a subtask goes under the top-level parent.
   const TaskId a2 = list.add("draft", a1);
@@ -106,6 +106,7 @@ static void saves_and_loads() {
   list.toggle_done(a1);
   list.add_focus(a, 90s);
   list.set_active(a);
+  list.set_priority(a1, Priority::High);
   CHECK(list.dirty());
   CHECK(list.save(path));
   CHECK(!list.dirty());
@@ -116,6 +117,8 @@ static void saves_and_loads() {
   CHECK(loaded.active() == a);
   CHECK(loaded.find(a1)->done);
   CHECK(loaded.find(a)->focus == 90s);
+  CHECK(loaded.find(a1)->priority == Priority::High);
+  CHECK(loaded.find(a)->priority == Priority::None);
   // New ids never reuse old ones.
   CHECK(loaded.add("new") > a1);
 
@@ -136,13 +139,20 @@ parent = 42
 [[task]]
 id = 2
 title = ""
+
+[[task]]
+id = 3
+title = "odd priority"
+priority = "urgent!!"
 )";
   TaskList list;
   CHECK(list.load(path));
-  CHECK(list.size() == 1);              // the blank task is dropped
-  CHECK(list.find(1)->parent == 0);     // missing parent → top-level
-  CHECK(list.active() == 0);            // unknown active id is cleared
-  CHECK(list.add("next") == 2);
+  CHECK(list.size() == 2);                          // the blank task is dropped
+  CHECK(list.find(1)->parent == 0);                 // missing parent → top-level
+  CHECK(list.find(1)->priority == Priority::None);  // old files have no priority
+  CHECK(list.find(3)->priority == Priority::None);  // unknown priority → none
+  CHECK(list.active() == 0);                        // unknown active id is cleared
+  CHECK(list.add("next") == 4);
 
   std::ofstream(path) << "this is = = not toml";
   std::string error;
@@ -150,6 +160,41 @@ title = ""
   CHECK(!error.empty());
 
   std::filesystem::remove_all(dir);
+}
+
+static void priorities() {
+  TaskList list;
+  const TaskId a = list.add("a");
+  const TaskId b = list.add("b");
+  const TaskId c = list.add("c");
+  const TaskId d = list.add("d");
+  const TaskId b1 = list.add("b1", b);
+  const TaskId b2 = list.add("b2", b);
+  CHECK(list.find(a)->priority == Priority::None);  // new tasks have none
+
+  CHECK(list.cycle_priority(c, +1));
+  CHECK(list.find(c)->priority == Priority::Low);
+  CHECK(list.cycle_priority(c, -1));
+  CHECK(list.cycle_priority(c, -1));  // none wraps around to high
+  CHECK(list.find(c)->priority == Priority::High);
+  CHECK(list.cycle_priority(c, +1));  // and high to none
+  CHECK(list.find(c)->priority == Priority::None);
+  CHECK(!list.cycle_priority(999, +1));
+
+  list.set_priority(b, Priority::Medium);
+  list.set_priority(d, Priority::High);
+  list.set_priority(b2, Priority::Low);
+  // Your own order unless sorted.
+  CHECK((titles(list) == std::vector<std::string>{"a", "b", "-b1", "-b2", "c", "d"}));
+  // Sorted: higher first, subtasks sorted within their parent, ties keep order.
+  CHECK((titles(list, true) == std::vector<std::string>{"d", "b", "-b2", "-b1", "a", "c"}));
+
+  // While sorted, moving stays within the same priority: a and c swap.
+  CHECK(list.move(c, -1, true));
+  CHECK((titles(list, true) == std::vector<std::string>{"d", "b", "-b2", "-b1", "c", "a"}));
+  CHECK(!list.move(d, -1, true));  // nothing above it with the same priority
+  CHECK(!list.move(d, +1, true));
+  (void)b1;
 }
 
 static void formats_focus_time() {
@@ -168,6 +213,7 @@ int main() {
   focus_rolls_up_to_parent();
   saves_and_loads();
   repairs_hand_edited_files();
+  priorities();
   formats_focus_time();
 
   if (failures == 0) std::printf("all task tests passed\n");

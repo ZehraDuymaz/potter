@@ -49,7 +49,7 @@ class App {
   void set_status(std::string status) { status_ = std::move(status); }
 
  private:
-  enum class View { Timer, Settings, Help, History, Music, Sounds };
+  enum class View { Timer, Settings, Help, History, Music, Sounds, Priorities };
 
   void on_phase_finished(Phase finished);
   // Pauses music and sounds when a break begins and resumes them when focus
@@ -78,7 +78,7 @@ class App {
   std::string music_time_line() const;
   // How far into the track music is, for the bar under the music line.
   std::optional<float> music_progress() const;
-  // The background sounds that are on, e.g. "≋ Rain · Brown noise · B pause".
+  // The background sounds that are on, e.g. "≋ Rain - Brown noise - B pause".
   std::string sounds_line() const;
   // The task panel is shown when enabled and the window is wide enough.
   bool tasks_visible() const;
@@ -101,7 +101,8 @@ class App {
   bool config_dirty_ = false;      // e.g. volume changed; saved on quit
   Timer::Clock::time_point last_save_{};
   ui::SettingsMenu settings_;
-  ui::TaskPanel task_panel_{tasks_};
+  ui::TaskPanel task_panel_{tasks_, config_};
+  ui::PriorityBoard priority_board_{tasks_};
   ui::MusicScreen music_screen_{player_, search_, favorites_, resume_points_, config_};
   ui::HistoryScreen history_screen_{history_, tasks_, config_};
   ui::SoundsScreen sounds_screen_{sound_board_, sound_mix_, paths_.sounds};

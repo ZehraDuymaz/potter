@@ -11,6 +11,21 @@ using namespace ftxui;
 
 namespace potter::ui {
 
+Color priority_color(Priority priority) {
+  switch (priority) {
+    case Priority::High: return Color::Red;
+    case Priority::Medium: return Color::Yellow;
+    case Priority::Low: return Color::Blue;
+    case Priority::None: break;
+  }
+  return Color::Default;
+}
+
+Element priority_marker(Priority priority) {
+  if (priority == Priority::None) return text("  ");
+  return text("● ") | color(priority_color(priority));
+}
+
 std::string fit(const std::string& s, int width) {
   if (string_width(s) <= width) return s;
   std::string out;
@@ -30,7 +45,7 @@ std::string pad_left(const std::string& s, int width) {
 }
 
 std::vector<std::string> wrap_hints(const std::vector<std::string>& hints, int width) {
-  static const std::string kSep = " · ";
+  static const std::string kSep = " - ";
   std::vector<std::string> lines;
   int used = 0;
   for (const std::string& hint : hints) {

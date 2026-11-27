@@ -114,7 +114,7 @@ void MusicScreen::enqueue_item(const Item& item) {
   const auto [target, title] = item_track(item);
   if (target.empty()) return;
   if (item.kind == Kind::Queue) {
-    message_ = "already in the queue · enter plays it";
+    message_ = "already in the queue - enter plays it";
   } else {
     enqueue(target, title);
   }
@@ -339,14 +339,14 @@ Element MusicScreen::render(Color accent) const {
     std::string time = format_clock(pos);
     const std::string place =
         state.queue.size() > 1 && state.queue_pos >= 0
-            ? " · " + std::to_string(state.queue_pos + 1) + "/" + std::to_string(state.queue.size())
+            ? " - " + std::to_string(state.queue_pos + 1) + "/" + std::to_string(state.queue.size())
             : "";
     Element bar = text("");
     if (state.duration && *state.duration > 0) {
       time += " / " + format_clock(*state.duration) + place;
       bar = gauge(static_cast<float>(pos / *state.duration)) | color(accent) | flex;
     } else {
-      time += " · live" + place;
+      time += " - live" + place;
     }
     now.push_back(hbox({text("   " + time + "  ") | dim, bar}));
   } else if (player_.loading()) {
@@ -358,7 +358,7 @@ Element MusicScreen::render(Color accent) const {
   }
   if (!state.error.empty()) now.push_back(text("   " + state.error) | color(Color::Red));
   if (const auto at = resume_offer()) {
-    now.push_back(text("   you left off at " + format_clock(*at) + " · press r to resume") |
+    now.push_back(text("   you left off at " + format_clock(*at) + " - press r to resume") |
                   color(accent));
   }
 
@@ -381,7 +381,7 @@ Element MusicScreen::render(Color accent) const {
     rows.push_back(text("Results for “" + status.query + "”") | bold);
     if (!status.error.empty()) rows.push_back(text("  " + status.error) | dim);
   }
-  // Results in columns: title · channel · length, with gaps between them.
+  // Results in columns: title - channel - length, with gaps between them.
   const int title_width = std::max(10, inner - 2 - kGap - kChannelWidth - kGap - kLengthWidth);
   int index = 0;
   for (const SearchResult& r : status.results) {
@@ -438,11 +438,11 @@ Element MusicScreen::render(Color accent) const {
     footer = vbox({
         text("remove \"" + delete_title + "\" from " + (queue ? "the queue?" : "favorites?")) |
             color(Color::Red),
-        text("press d again · any other key cancels") | dim,
+        text("press d again - any other key cancels") | dim,
     });
   } else if (typing_) {
     footer = vbox({
-        text("enter search / play · tab queue a link · esc cancel") | dim,
+        text("enter search / play - tab queue a link - esc cancel") | dim,
         text("tip: links (https://…) and paths (~/Music/…) play directly") | dim,
     });
   } else {
@@ -463,8 +463,8 @@ Element MusicScreen::render(Color accent) const {
   const int volume = static_cast<int>(state.connected ? state.volume : player_.volume());
   Element content = vbox({
       hbox({text("Music") | bold, filler(),
-            text(state.loop() == LoopMode::Track   ? "loop track · "
-                 : state.loop() == LoopMode::Queue ? "loop queue · "
+            text(state.loop() == LoopMode::Track   ? "loop track - "
+                 : state.loop() == LoopMode::Queue ? "loop queue - "
                                                    : "") |
                 color(accent),
             text("vol " + std::to_string(volume) + "%") | dim}),

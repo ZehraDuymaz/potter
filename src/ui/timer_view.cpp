@@ -92,7 +92,7 @@ Element timer_view(const Timer& timer, const Config& config,
   }
 
   std::string state = timer.running()     ? "running"
-                      : timer.untouched() ? "ready · press space"
+                      : timer.untouched() ? "ready - press space"
                                           : "paused";
 
   Elements lines = {
@@ -129,8 +129,11 @@ Element timer_view(const Timer& timer, const Config& config,
     lines.push_back(paragraphAlignCenter(sounds) | dim | size(WIDTH, LESS_THAN, 50) | hcenter);
   }
   lines.push_back(text(""));
-  lines.push_back(text("space start/pause · r reset · n skip · s settings") | dim | hcenter);
-  lines.push_back(text("t tasks · m music · b sounds · h history · ? help · q quit") | dim |
+  lines.push_back(text(config.task_priorities
+                           ? "space start/pause - r reset - n skip - E board - s settings"
+                           : "space start/pause - r reset - n skip - s settings") |
+                  dim | hcenter);
+  lines.push_back(text("t tasks - m music - b sounds - h history - ? help - q quit") | dim |
                   hcenter);
   return vbox(std::move(lines)) | center;
 }
@@ -147,6 +150,7 @@ Element help_view() {
              row("n", "skip to next phase"),
              row("t", "show / hide tasks"),
              row("h", "history: days, tasks, streaks"),
+             row("E", "priority board"),
              row("m", "music"),
              row("p", "play / pause music"),
              row("< >", "music: previous / next in queue"),
@@ -168,6 +172,8 @@ Element help_view() {
              row("enter", "make active (gets focus time)"),
              row("d d", "delete"),
              row("J K", "move task down / up"),
+             row("i I", "priority up / down (none, low, medium, high)"),
+             row("o", "sort by priority / your own order"),
              separator(),
              text("press any key to close") | dim | hcenter,
          }) |

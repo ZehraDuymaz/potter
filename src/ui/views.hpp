@@ -26,6 +26,11 @@ class SoundBoard;
 namespace potter::ui {
 
 ftxui::Color phase_color(Phase phase, const Config& config);
+// High is red, medium yellow, low blue, from the terminal's palette so they
+// follow its theme. None has no color.
+ftxui::Color priority_color(Priority priority);
+// A colored "●" for a priority, or two spaces for none.
+ftxui::Element priority_marker(Priority priority);
 
 // `big` draws the countdown in large digits; `active_task`, `music` (the
 // title) and `music_time` are lines shown under the timer (empty for none);
@@ -46,7 +51,7 @@ std::string fit(const std::string& s, int width);
 // Pads `s` on the left to `width` terminal columns.
 std::string pad_left(const std::string& s, int width);
 // Packs key hints like "p pause" into as few lines of at most `width`
-// columns as they fit, joined by " · ", in order.
+// columns as they fit, joined by " - ", in order.
 std::vector<std::string> wrap_hints(const std::vector<std::string>& hints, int width);
 // A screen width that grows with the terminal, within limits.
 int screen_width(int min_width, int max_width);
@@ -117,10 +122,11 @@ class SettingsMenu {
   std::string error_;
 };
 
-// The task list panel next to the timer.
+// The task list panel next to the timer. Reads and toggles the priority
+// settings in `config`.
 class TaskPanel {
  public:
-  explicit TaskPanel(TaskList& tasks);
+  TaskPanel(TaskList& tasks, Config& config);
   TaskPanel(const TaskPanel&) = delete;  // the text input points into this object
   TaskPanel& operator=(const TaskPanel&) = delete;
 
@@ -138,8 +144,10 @@ class TaskPanel {
   void finish_typing();
   int selected_index(const std::vector<TaskRow>& rows) const;
   void select_index(const std::vector<TaskRow>& rows, int index);
+  bool sorted() const { return config_.task_priorities && config_.sort_tasks_by_priority; }
 
   TaskList& tasks_;
+  Config& config_;
   TaskId selected_ = 0;
   TaskId pending_delete_ = 0;
   Mode mode_ = Mode::Browse;
@@ -148,6 +156,29 @@ class TaskPanel {
   ftxui::Component input_;
   // Wraps input_ so the typing cursor wins over the list's selected row.
   ftxui::Component field_;
+};
+
+// The priority board ('E'): open tasks in four boxes, high, medium, low and
+// no priority. j/k move through them, i/I change the selected task's
+// priority, x marks it done and enter makes it active.
+class PriorityBoard {
+ public:
+  explicit PriorityBoard(TaskList& tasks);
+
+  void open();
+  // Handles a key. Always consumes it, since the screen is modal.
+  bool handle(const ftxui::Event& event);
+  bool done() const { return done_; }
+  ftxui::Element render(ftxui::Color accent) const;
+
+ private:
+  // Open tasks, high priority first, in the task list's order within a level.
+  std::vector<const Task*> open_tasks() const;
+  int selected_index(const std::vector<const Task*>& list) const;
+
+  TaskList& tasks_;
+  TaskId selected_ = 0;
+  bool done_ = false;
 };
 
 // The music screen: now playing, a search/link box, results, the queue and

@@ -5,6 +5,17 @@ Versions follow [Semantic Versioning](https://semver.org): `MAJOR.MINOR.PATCH`.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-27
+
+### Added
+- Task priorities (#6): none, low, medium or high. `i` steps the selected task's priority up and `I` steps it down. A colored `●` before the title shows it: red for high, yellow for medium, blue for low, from the terminal's palette. Priorities are saved in `tasks.toml` as `priority = "high"`. Older files load fine, with no priorities set.
+- `o` in the task panel sorts the list by priority (higher first, subtasks within their parent, your own order within a level) and back. The choice is saved as `sort_by_priority` in `config.toml`. While sorted, `J`/`K` move a task among the tasks with the same priority.
+- A priority board (`E`, #6): open tasks in four boxes, high, medium, low and no priority. `j`/`k` move, `tab` jumps to the next box, `i`/`I` change the priority, `x` marks done and `enter` makes a task active.
+- A "Task priorities" setting (on by default, `priorities` under `[tasks]`). Off hides the dots, keys and board, and keeps the priorities saved.
+
+### Changed
+- Key hints and status lines separate items with ` - ` instead of ` · `.
+
 ## [0.8.1] - 2026-11-13
 
 ### Fixed

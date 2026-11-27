@@ -10,11 +10,17 @@ namespace potter {
 
 using TaskId = std::uint64_t;  // 0 means "no task"
 
+enum class Priority { None, Low, Medium, High };
+
+// "none", "low", "medium", "high".
+const char* priority_name(Priority priority);
+
 struct Task {
   TaskId id = 0;
   TaskId parent = 0;  // 0 for a top-level task
   std::string title;
   bool done = false;
+  Priority priority = Priority::None;
   std::chrono::nanoseconds focus{};  // focus time spent on this task itself
 };
 
@@ -36,15 +42,22 @@ class TaskList {
   bool rename(TaskId id, std::string title);
   // Marking the active task done also clears the active task.
   bool toggle_done(TaskId id);
-  // Swaps a task with its previous (-1) or next (+1) sibling.
-  bool move(TaskId id, int direction);
+  // Swaps a task with its previous (-1) or next (+1) sibling. With
+  // `same_priority`, only siblings of the same priority count, so a move
+  // stays inside its group when the list is sorted by priority.
+  bool move(TaskId id, int direction, bool same_priority = false);
+  bool set_priority(TaskId id, Priority priority);
+  // Steps up (+1) or down (-1) through none → low → medium → high, wrapping.
+  bool cycle_priority(TaskId id, int direction);
   void add_focus(TaskId id, std::chrono::nanoseconds amount);
 
   const Task* find(TaskId id) const;
   // Own focus time plus that of its subtasks.
   std::chrono::nanoseconds total_focus(TaskId id) const;
   // Tasks in display order: each top-level task followed by its subtasks.
-  std::vector<TaskRow> rows() const;
+  // `by_priority` puts higher priorities first (among top-level tasks, and
+  // among the subtasks of each task), keeping your own order within a level.
+  std::vector<TaskRow> rows(bool by_priority = false) const;
   int size() const { return static_cast<int>(tasks_.size()); }
   int count_done() const;
 

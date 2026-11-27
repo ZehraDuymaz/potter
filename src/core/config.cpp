@@ -76,8 +76,7 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
     if (auto n = (*t)["sessions_before_long_break"].value<int64_t>()) {
       timer.sessions_before_long_break = static_cast<int>(std::clamp<int64_t>(*n, 1, 12));
     }
-    timer.auto_start_breaks =
-        (*t)["auto_start_breaks"].value_or(timer.auto_start_breaks);
+    timer.auto_start_breaks = (*t)["auto_start_breaks"].value_or(timer.auto_start_breaks);
     timer.auto_start_focus = (*t)["auto_start_focus"].value_or(timer.auto_start_focus);
   }
 
@@ -87,9 +86,8 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
   }
 
   if (const auto* t = root["theme"].as_table()) {
-    config.theme = (*t)["mode"].value_or(std::string("terminal")) == "custom"
-                       ? ThemeMode::Custom
-                       : ThemeMode::Terminal;
+    config.theme = (*t)["mode"].value_or(std::string("terminal")) == "custom" ? ThemeMode::Custom
+                                                                              : ThemeMode::Terminal;
     config.focus_color = read_color(*t, "focus", config.focus_color);
     config.short_break_color = read_color(*t, "short_break", config.short_break_color);
     config.long_break_color = read_color(*t, "long_break", config.long_break_color);
@@ -97,6 +95,9 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
 
   if (const auto* t = root["tasks"].as_table()) {
     config.show_tasks = (*t)["show_panel"].value_or(config.show_tasks);
+    config.task_priorities = (*t)["priorities"].value_or(config.task_priorities);
+    config.sort_tasks_by_priority =
+        (*t)["sort_by_priority"].value_or(config.sort_tasks_by_priority);
   }
 
   if (const auto* t = root["goals"].as_table()) {
@@ -112,8 +113,7 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
     if (auto v = (*t)["volume"].value<int64_t>()) {
       config.music_volume = static_cast<int>(std::clamp<int64_t>(*v, 0, 100));
     }
-    config.pause_music_on_breaks =
-        (*t)["pause_on_breaks"].value_or(config.pause_music_on_breaks);
+    config.pause_music_on_breaks = (*t)["pause_on_breaks"].value_or(config.pause_music_on_breaks);
     if (auto v = (*t)["search_results"].value<int64_t>()) {
       config.music_search_results = static_cast<int>(std::clamp<int64_t>(*v, 1, 20));
     }
@@ -123,8 +123,7 @@ Config load_config(const std::filesystem::path& path, std::string* error) {
   return config;
 }
 
-bool save_config(const Config& config, const std::filesystem::path& path,
-                 std::string* error) {
+bool save_config(const Config& config, const std::filesystem::path& path, std::string* error) {
   const auto& timer = config.timer;
   toml::table root{
       {"timer",
@@ -151,6 +150,8 @@ bool save_config(const Config& config, const std::filesystem::path& path,
       {"tasks",
        toml::table{
            {"show_panel", config.show_tasks},
+           {"priorities", config.task_priorities},
+           {"sort_by_priority", config.sort_tasks_by_priority},
        }},
       {"goals",
        toml::table{

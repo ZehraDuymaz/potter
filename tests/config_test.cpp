@@ -90,6 +90,8 @@ static void saves_and_loads_every_setting() {
   config.short_break_color = "#445566";
   config.long_break_color = "#778899";
   config.show_tasks = false;
+  config.task_priorities = false;
+  config.sort_tasks_by_priority = true;
   config.daily_goal_minutes = 240;
   config.day_start_hour = 6;
   config.music_volume = 35;
@@ -116,6 +118,8 @@ static void saves_and_loads_every_setting() {
   CHECK(loaded.short_break_color == "#445566");
   CHECK(loaded.long_break_color == "#778899");
   CHECK(!loaded.show_tasks);
+  CHECK(!loaded.task_priorities);
+  CHECK(loaded.sort_tasks_by_priority);
   CHECK(loaded.daily_goal_minutes == 240);
   CHECK(loaded.day_start_hour == 6);
   CHECK(loaded.music_volume == 35);
@@ -145,6 +149,8 @@ something = true
   CHECK(config.daily_goal_minutes == 100);
   CHECK(config.music_volume == 70);
   CHECK(config.mpv_args.empty());
+  CHECK(config.task_priorities);  // on by default
+  CHECK(!config.sort_tasks_by_priority);
 
   // An empty file is just a config with nothing set.
   const Config empty = load_text("", &error);

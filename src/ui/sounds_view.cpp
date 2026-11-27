@@ -163,15 +163,15 @@ Element SoundsScreen::render(Color accent) const {
     const auto it = std::find_if(sounds_.begin(), sounds_.end(),
                                  [&](const Sound& s) { return s.id == id; });
     if (it == sounds_.end()) continue;
-    playing += (playing.empty() ? "" : " · ") + it->name;
+    playing += (playing.empty() ? "" : " - ") + it->name;
   }
   std::string status = playing.empty() ? "nothing on" : "≋ " + playing;
-  if (board_.paused()) status += " · paused";
+  if (board_.paused()) status += " - paused";
 
   Element footer = vbox({
-      message_.empty() ? text("enter on/off · ← → volume · p pause/resume all") | dim
+      message_.empty() ? text("enter on/off - ← → volume - p pause/resume all") | dim
                        : text(message_) | color(accent),
-      text("r last mix · x all off · esc close") | dim,
+      text("r last mix - x all off - esc close") | dim,
       text(fit("your own sounds: put audio files in " + short_path(dir_), inner)) | dim,
   });
 

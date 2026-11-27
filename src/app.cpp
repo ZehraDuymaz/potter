@@ -97,13 +97,22 @@ bool App::on_event(const Event& event) {
       if (sounds_screen_.done()) view_ = View::Timer;
       return true;
 
-    case View::Timer:
-      break;
+    case View::Priorities:
+      priority_board_.handle(event);
+      if (data_dirty()) save_data(now);
+      if (priority_board_.done()) view_ = View::Timer;
+      return true;
+
+    case View::Timer: break;
   }
 
-  if (tasks_visible() && task_panel_.handle(event)) {
-    if (data_dirty()) save_data(now);
-    return true;
+  if (tasks_visible()) {
+    const bool sorted = config_.sort_tasks_by_priority;
+    if (task_panel_.handle(event)) {
+      if (data_dirty()) save_data(now);
+      if (config_.sort_tasks_by_priority != sorted) save_config(config_, paths_.config);
+      return true;
+    }
   }
   if (handle_seek_key(event)) return true;
 
@@ -129,12 +138,12 @@ bool App::on_event(const Event& event) {
       player_.toggle_pause();
       paused_for_break_ = false;
     } else {
-      set_status("nothing playing · press m for music");
+      set_status("nothing playing - press m for music");
       return true;
     }
   } else if (event == Event::Character('<') || event == Event::Character('>')) {
     if (!player_.state().has_media()) {
-      set_status("nothing playing · press m for music");
+      set_status("nothing playing - press m for music");
       return true;
     }
     event == Event::Character('>') ? player_.next() : player_.previous();
@@ -148,7 +157,7 @@ bool App::on_event(const Event& event) {
   } else if (event == Event::Character('B')) {
     // Only the sounds: music has its own key (p).
     if (!sound_board_.toggle_pause()) {
-      set_status("no sounds on · press b for sounds");
+      set_status("no sounds on - press b for sounds");
       return true;
     }
     if (!sound_board_.paused()) sounds_paused_for_break_ = false;  // by hand wins
@@ -158,6 +167,13 @@ bool App::on_event(const Event& event) {
   } else if (event == Event::Character('h')) {
     history_screen_.open();
     view_ = View::History;
+  } else if (event == Event::Character('E')) {
+    if (!config_.task_priorities) {
+      set_status("task priorities are off - turn them on in settings (s)");
+      return true;
+    }
+    priority_board_.open();
+    view_ = View::Priorities;
   } else if (event == Event::Character('?')) {
     view_ = View::Help;
   } else if (event == Event::Character('q')) {
@@ -181,8 +197,7 @@ Element App::render() {
   switch (view_) {
     case View::Timer:
       body = ui::timer_view(timer_, config_, now, big, active_task_line(), today_line(),
-                            music_line(), music_time_line(), music_progress(),
-                            sounds_line());
+                            music_line(), music_time_line(), music_progress(), sounds_line());
       if (show_tasks) {
         body = hbox({
             body | flex,
@@ -196,6 +211,7 @@ Element App::render() {
     case View::History: body = history_screen_.render(today()); break;
     case View::Music: body = music_screen_.render(accent); break;
     case View::Sounds: body = sounds_screen_.render(accent); break;
+    case View::Priorities: body = priority_board_.render(accent); break;
   }
   if (status_.empty()) return body;
   return vbox({body | flex, text(status_) | color(Color::Red) | hcenter});
@@ -267,7 +283,7 @@ bool App::handle_seek_key(const Event& event) {
   if (!arrow && !digit) return false;
 
   if (!player_.state().has_media() && !player_.loading()) {
-    set_status("nothing playing · press m for music");
+    set_status("nothing playing - press m for music");
     return true;
   }
   if (event == Event::ArrowLeft) {
@@ -321,7 +337,7 @@ std::string App::today_line() const {
       focus + " / " + format_focus(std::chrono::minutes(config_.daily_goal_minutes)) + " today";
   if (stats.goal_met()) line += " ✓";
   if (const int streak = history_.streak(today()); streak > 0) {
-    line += " · 🔥 " + std::to_string(streak);
+    line += " - 🔥 " + std::to_string(streak);
   }
   return line;
 }
@@ -337,7 +353,7 @@ std::string App::music_time_line() const {
   if (!state.has_media()) return "";
   std::string line = (state.paused ? "▶ " : "⏸ ") + format_clock(state.time_pos.value_or(0));
   if (state.duration && *state.duration > 0) line += " / " + format_clock(*state.duration);
-  if (paused_for_break_) line += " · paused for the break";
+  if (paused_for_break_) line += " - paused for the break";
   return line;
 }
 
@@ -345,16 +361,16 @@ std::string App::sounds_line() const {
   std::string line;
   for (const std::string& id : sound_board_.active()) {
     const auto& builtin = builtin_sounds();
-    const auto it = std::find_if(builtin.begin(), builtin.end(),
-                                 [&](const Sound& s) { return s.id == id; });
+    const auto it =
+        std::find_if(builtin.begin(), builtin.end(), [&](const Sound& s) { return s.id == id; });
     // Your own sounds are named after their file.
     const std::string name =
         it != builtin.end() ? it->name : std::filesystem::path(id).stem().string();
-    line += (line.empty() ? "≋ " : " · ") + name;
+    line += (line.empty() ? "≋ " : " - ") + name;
   }
   if (line.empty()) return line;
   // The key hint, since sounds have their own pause key.
-  line += sound_board_.paused() ? " · paused · B resume" : " · B pause";
+  line += sound_board_.paused() ? " - paused - B resume" : " - B pause";
   return line;
 }
 
@@ -373,7 +389,7 @@ std::string App::active_task_line() const {
   if (!task) return "";
   std::string line = "▶ " + task->title;
   if (const std::string time = format_focus(task->focus); !time.empty()) {
-    line += " · " + time;
+    line += " - " + time;
   }
   return line;
 }
@@ -386,8 +402,8 @@ void App::on_phase_finished(Phase finished) {
 
   if (finished == Phase::Focus) {
     send_notification("Focus done 🍅", timer_.phase() == Phase::LongBreak
-                                          ? "Nice work! Time for a long break."
-                                          : "Time for a short break.");
+                                           ? "Nice work! Time for a long break."
+                                           : "Time for a short break.");
   } else {
     send_notification("Break over", "Back to focus.");
   }

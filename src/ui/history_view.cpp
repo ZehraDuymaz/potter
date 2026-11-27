@@ -16,7 +16,7 @@ constexpr int kHeight = 10;  // rows of bar height
 constexpr int kAxisWidth = 8;
 constexpr int kMinWidth = 64;
 constexpr int kMaxWidth = 90;
-// Columns of a task row: title · time · status.
+// Columns of a task row: title - time - status.
 constexpr int kTimeWidth = 8;
 constexpr int kStatusWidth = 10;
 constexpr int kGap = 3;
@@ -44,7 +44,7 @@ std::string format_minutes(double minutes) {
   return format_focus(std::chrono::minutes(static_cast<long long>(std::lround(minutes))));
 }
 
-// Width of the title column in a task row: indent · title · time · status.
+// Width of the title column in a task row: indent - title - time - status.
 int task_title_width(int inner) {
   return std::max(10, inner - 2 - kGap - kTimeWidth - kGap - kStatusWidth);
 }
@@ -263,7 +263,7 @@ Element HistoryScreen::render_chart(Day today) const {
 Element HistoryScreen::render_day(Day day, Day today, int inner) const {
   const DayStats stats = history_.get(day);
   std::string heading = day_title(day);
-  if (day == today) heading += " · today";
+  if (day == today) heading += " - today";
 
   Elements lines;
   lines.push_back(hbox({
@@ -312,7 +312,7 @@ Element HistoryScreen::render_totals(Day today, int inner) const {
         const std::string label = "focused time";
         const int label_end = 2 + task_title_width(inner) + kGap + kTimeWidth;
         const int left = std::max(0, label_end - static_cast<int>(label.size()));
-        return hbox({text(fit("Task totals · " + range_label, left)) | bold |
+        return hbox({text(fit("Task totals - " + range_label, left)) | bold |
                          size(WIDTH, EQUAL, left),
                      text(label) | dim,
                      text(std::string(kGap, ' ')),
@@ -344,7 +344,7 @@ Element HistoryScreen::render(Day today) const {
       tab_label("Tasks", Tab::Tasks),
       filler(),
       text(streak > 0 ? "🔥 streak " + std::to_string(streak) : "no streak yet"),
-      text(" · best " + std::to_string(best)) | dim,
+      text(" - best " + std::to_string(best)) | dim,
   });
 
   Element body;
@@ -364,10 +364,10 @@ Element HistoryScreen::render(Day today) const {
         render_day(today - days(day_offset_), today, inner),
         text(""),
         text("last " + std::to_string(kDays) + " days: " + format_amount(total) +
-             " · goal met on " + std::to_string(days_met) + (days_met == 1 ? " day" : " days")) |
+             " - goal met on " + std::to_string(days_met) + (days_met == 1 ? " day" : " days")) |
             dim,
     });
-    footer = text("←/→ pick a day · tab task totals · esc close") | dim;
+    footer = text("←/→ pick a day - tab task totals - esc close") | dim;
   } else {
     body = render_totals(today, inner);
     if (pending_remove_) {
@@ -381,17 +381,17 @@ Element HistoryScreen::render(Day today) const {
           paragraph("remove " + what +
                     " from your history? Its time also comes off those days' totals.") |
               color(Color::Red),
-          text("press d again · any other key cancels") | dim,
+          text("press d again - any other key cancels") | dim,
       });
     } else if (!message_.empty()) {
       footer = vbox({
           text(message_) | color(phase_color(Phase::Focus, config_)),
-          text("j/k move · dd remove from history · r change range · tab days · esc close") |
+          text("j/k move - dd remove from history - r change range - tab days - esc close") |
               dim,
       });
     } else {
       footer =
-          text("j/k move · dd remove from history · r change range · tab days · esc close") |
+          text("j/k move - dd remove from history - r change range - tab days - esc close") |
           dim;
     }
   }

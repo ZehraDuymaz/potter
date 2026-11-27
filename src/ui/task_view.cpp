@@ -9,7 +9,7 @@ using namespace ftxui;
 
 namespace potter::ui {
 
-TaskPanel::TaskPanel(TaskList& tasks) : tasks_(tasks) {
+TaskPanel::TaskPanel(TaskList& tasks, Config& config) : tasks_(tasks), config_(config) {
   InputOption option;
   option.multiline = false;
   option.cursor_position = &cursor_;
@@ -29,7 +29,7 @@ TaskPanel::TaskPanel(TaskList& tasks) : tasks_(tasks) {
     return hbox({text(" ") | focusCursorBarBlinking, filler()});
   });
 
-  const auto rows = tasks_.rows();
+  const auto rows = tasks_.rows(sorted());
   if (!rows.empty()) selected_ = rows.front().task->id;
 }
 
@@ -63,11 +63,8 @@ void TaskPanel::finish_typing() {
     case Mode::AddSubtask:
       if (TaskId id = tasks_.add(buffer_, selected_)) selected_ = id;
       break;
-    case Mode::Rename:
-      tasks_.rename(selected_, buffer_);
-      break;
-    case Mode::Browse:
-      break;
+    case Mode::Rename: tasks_.rename(selected_, buffer_); break;
+    case Mode::Browse: break;
   }
   mode_ = Mode::Browse;
   buffer_.clear();
@@ -90,7 +87,7 @@ bool TaskPanel::handle(const Event& event) {
   const TaskId confirm_delete = pending_delete_;
   pending_delete_ = 0;
 
-  const auto rows = tasks_.rows();
+  const auto rows = tasks_.rows(sorted());
   const int index = selected_index(rows);
   if (index >= 0) selected_ = rows[index].task->id;  // keep selection valid
 
@@ -117,14 +114,20 @@ bool TaskPanel::handle(const Event& event) {
     if (confirm_delete == selected_) {
       tasks_.remove(selected_);
       // Select the row that took the deleted one's place.
-      select_index(tasks_.rows(), index);
+      select_index(tasks_.rows(sorted()), index);
     } else {
       pending_delete_ = selected_;
     }
   } else if (event == Event::Character('J')) {
-    tasks_.move(selected_, +1);
+    tasks_.move(selected_, +1, sorted());
   } else if (event == Event::Character('K')) {
-    tasks_.move(selected_, -1);
+    tasks_.move(selected_, -1, sorted());
+  } else if (config_.task_priorities && event == Event::Character('i')) {
+    tasks_.cycle_priority(selected_, +1);
+  } else if (config_.task_priorities && event == Event::Character('I')) {
+    tasks_.cycle_priority(selected_, -1);
+  } else if (config_.task_priorities && event == Event::Character('o')) {
+    config_.sort_tasks_by_priority = !config_.sort_tasks_by_priority;
   } else {
     return false;
   }
@@ -132,15 +135,15 @@ bool TaskPanel::handle(const Event& event) {
 }
 
 Element TaskPanel::render(Color accent) const {
-  const auto rows = tasks_.rows();
+  const auto rows = tasks_.rows(sorted());
   const int index = selected_index(rows);
 
   Elements lines;
   for (std::size_t i = 0; i < rows.size(); ++i) {
     const Task& task = *rows[i].task;
     const bool active = task.id == tasks_.active();
-    const std::string time = format_focus(
-        rows[i].depth == 0 ? tasks_.total_focus(task.id) : task.focus);
+    const std::string time =
+        format_focus(rows[i].depth == 0 ? tasks_.total_focus(task.id) : task.focus);
 
     // paragraph() wraps long titles onto more lines instead of cutting them off.
     Element title = paragraph(task.title);
@@ -151,6 +154,8 @@ Element TaskPanel::render(Color accent) const {
         text(rows[i].depth == 1 ? "    " : ""),
         text(active ? "▶ " : "  ") | color(accent),
         text(task.done ? "[x] " : "[ ] ") | (task.done ? dim : nothing),
+        config_.task_priorities ? priority_marker(task.priority) | (task.done ? dim : nothing)
+                                : text(""),
         title | flex,
         text(time.empty() ? "" : " " + time) | dim,
     });
@@ -158,9 +163,8 @@ Element TaskPanel::render(Color accent) const {
     lines.push_back(line);
   }
 
-  Element list = rows.empty()
-                     ? text("no tasks yet · press a to add one") | dim | center
-                     : vbox(std::move(lines)) | vscroll_indicator | yframe;
+  Element list = rows.empty() ? text("no tasks yet - press a to add one") | dim | center
+                              : vbox(std::move(lines)) | vscroll_indicator | yframe;
 
   Element footer;
   switch (mode_) {
@@ -172,7 +176,7 @@ Element TaskPanel::render(Color accent) const {
                                                       : "rename: ";
       footer = vbox({
           hbox({text(label) | bold, field_->Render() | flex}),
-          text("enter save · esc cancel") | dim,
+          text("enter save - esc cancel") | dim,
       });
       break;
     }
@@ -186,13 +190,20 @@ Element TaskPanel::render(Color accent) const {
             paragraph("delete \"" + (task ? task->title : std::string()) + "\"" +
                       (has_subtasks ? " and its subtasks?" : "?")) |
                 color(Color::Red),
-            text("press d again · any other key cancels") | dim,
+            text("press d again - any other key cancels") | dim,
         });
       } else {
-        footer = vbox({
-            text("a add · A subtask · e rename · x done") | dim,
-            text("enter active · dd delete · J/K move") | dim,
-        });
+        Elements hints{
+            text("a add - A subtask - e rename - x done") | dim,
+            text("enter active - dd delete - J/K move") | dim,
+        };
+        if (config_.task_priorities) {
+          hints.push_back(text(std::string("i/I priority - o ") +
+                               (config_.sort_tasks_by_priority ? "own order" : "sort") +
+                               " - E board") |
+                          dim);
+        }
+        footer = vbox(std::move(hints));
       }
       break;
   }
@@ -200,7 +211,8 @@ Element TaskPanel::render(Color accent) const {
   const std::string count =
       std::to_string(tasks_.count_done()) + "/" + std::to_string(tasks_.size());
   Element content = vbox({
-      hbox({text("Tasks") | bold, filler(), text(rows.empty() ? "" : count) | dim}),
+      hbox({text("Tasks") | bold, text(sorted() ? " by priority" : "") | dim, filler(),
+            text(rows.empty() ? "" : count) | dim}),
       separator(),
       list | flex,
       separator(),

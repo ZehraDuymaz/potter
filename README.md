@@ -4,7 +4,7 @@ A lightweight Pomodoro timer for the terminal.
 
 potter takes the good parts of browser Pomodoro apps (focus cycles, tasks, streaks, ambient music) and puts them in a single terminal app that's much lighter than a browser tab.
 
-> Status: **v0.8** — timer, settings, tasks, daily goal, streaks, music and per-task history work.
+> Status: **v0.9**: timer, settings, tasks with priorities, daily goal, streaks, music and per-task history work.
 
 ---
 
@@ -65,12 +65,16 @@ See [Build from source](#build-from-source) below.
 - One level of subtasks.
 - Marking one task as the **active** task (`▶`), so focus time is credited to it as it happens. Pauses, resets, skips and breaks don't count.
 - Per-task time tracking, with subtasks' time rolled up into their parent.
+- **Priorities:** `i` steps a task up through none → low → medium → high (`I` goes down), shown as a colored `●` before the title: red for high, yellow for medium, blue for low. The colors come from your terminal's palette, so they follow its theme.
+- `o` sorts the list by priority (higher first, subtasks within their parent) and back to your own order. While sorted, `J`/`K` move a task within its priority.
+- A **priority board** (`E`): your open tasks in four boxes, high, medium, low and no priority. Change priorities, finish tasks or pick the active one right there.
+- Don't want priorities? Turn them off in settings: the dots, keys and board go away, and your priorities stay saved for when you turn them back on.
 - Tasks are saved to `~/.local/share/potter/tasks.toml`, at least every 30 seconds while the timer runs and whenever you change something.
 
 ### Goals, streaks and history
 
 - A daily focus goal in minutes (default 1h 40m, i.e. 4 × 25 min). Every focused minute counts, with or without an active task.
-- Today's progress and your streak under the timer: `45m / 1h 40m today · 🔥 5`, plus a notification when you reach the goal.
+- Today's progress and your streak under the timer: `45m / 1h 40m today - 🔥 5`, plus a notification when you reach the goal.
 - A streak counts consecutive days that met their goal. Today doesn't break it while it's still in progress.
 - A new day starts at 4 AM by default (adjustable), so late-night focus counts for the day before.
 - A history screen (`h`): a vertical bar chart of the last 14 days with the goal line, current and best streak, and totals.
@@ -85,7 +89,7 @@ See [Build from source](#build-from-source) below.
 - Now playing under the timer: the title, `⏸ 1:23 / 4:05` and a progress bar.
 - Play/pause with `p` and volume with `+`/`-` from anywhere; the volume is remembered.
 - `←`/`→` jump back/forward 10 seconds, and `0`–`9` jump to 0%–90% of the track, like on YouTube. Works on the timer screen and in the music screen.
-- **Resume:** potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 · press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered. Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
+- **Resume:** potter remembers where you left off in each track (YouTube, links, files and favorites). Play it again and the music screen offers `you left off at 2:31 - press r to resume`. The first and last 15 seconds don't count, and live streams aren't remembered. Positions are saved to `~/.local/share/potter/positions.toml` (the newest 200 tracks).
 - **Favorites:** press `f` while something plays to save it; replay it from the music screen. Saved to `~/.local/share/potter/favorites.toml`.
 - **Queue:** press `e` on a search result or favorite to play it after the current track (or `tab` instead of `enter` to queue a link or path you typed). The queue shows in the music screen: `enter` plays an entry, `dd` removes it, `c` clears what's up next. Playing something with `enter` while a queue exists replaces just the current track; the rest of the queue stays.
 - `<` / `>` go to the previous / next track, in the music screen and on the timer screen.
@@ -115,6 +119,7 @@ See [Build from source](#build-from-source) below.
   - auto-starting breaks and focus sessions
   - desktop notifications and the terminal bell
   - pausing music and sounds during breaks
+  - task priorities on/off
   - the color scheme: terminal palette (default) or custom hex colors
 - Settings are saved to `~/.config/potter/config.toml`, and you can edit that file by hand too.
 - The background is transparent: potter never paints one.
@@ -129,6 +134,7 @@ See [Build from source](#build-from-source) below.
 | `s` | Open settings |
 | `t` | Show / hide the task panel |
 | `h` | History: days, task totals, streaks |
+| `E` | Priority board |
 | `m` | Music screen |
 | `p` | Play / pause music |
 | `<` / `>` | Music: previous / next track in the queue |
@@ -140,7 +146,9 @@ See [Build from source](#build-from-source) below.
 | `?` | Help |
 | `q` | Quit |
 
-In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up.
+In the task panel: `↑↓`/`jk` move, `a` add, `A` add subtask, `e` rename, `x` done, `enter` make active, `dd` delete, `J`/`K` move down/up, `i`/`I` priority up/down, `o` sort by priority or your own order.
+
+In the priority board: `↑↓`/`jk` move, `tab` next box, `i`/`I` priority up/down, `x` done, `enter` make active, `esc` close.
 
 In the history screen: `←`/`→` pick a day, `tab` switch between days and task totals, `r` change the totals' range, `j`/`k` move, `dd` remove a task's time from the history, `esc` close.
 
@@ -279,6 +287,7 @@ potter/
 │       ├── views.hpp
 │       ├── timer_view.cpp     # timer + help screens
 │       ├── task_view.cpp      # task panel
+│       ├── priority_view.cpp  # priority board
 │       ├── history_view.cpp   # history bar chart
 │       ├── music_view.cpp     # music screen
 │       ├── sounds_view.cpp    # sounds screen

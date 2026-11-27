@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(potter VERSION 0.8.1 LANGUAGES CXX)
+project(potter VERSION 0.9.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -72,6 +72,7 @@ add_executable(potter
   src/ui/timer_view.cpp
   src/ui/settings_view.cpp
   src/ui/task_view.cpp
+  src/ui/priority_view.cpp
   src/ui/history_view.cpp
   src/ui/music_view.cpp
   src/ui/sounds_view.cpp

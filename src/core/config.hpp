@@ -34,6 +34,11 @@ struct Config {
 
   // Whether the task panel is shown next to the timer (toggled with 't').
   bool show_tasks = true;
+  // Task priorities (none/low/medium/high), their colors and the priority
+  // board ('E'). Off hides all of it; the priorities stay saved.
+  bool task_priorities = true;
+  // Whether the task list is sorted by priority (toggled with 'o').
+  bool sort_tasks_by_priority = false;
 
   // Daily focus goal, in minutes (default: 4 × 25 min).
   int daily_goal_minutes = 100;
